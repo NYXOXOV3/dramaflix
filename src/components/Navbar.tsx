@@ -4,9 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { Search, Menu, X, Crown, ChevronDown, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { providers } from "@/lib/mock-data";
+import { useDataStore } from "@/lib/data-store";
 
 export default function Navbar() {
+  const { providers } = useDataStore();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");

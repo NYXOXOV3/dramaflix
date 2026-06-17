@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { movies as initialMovies, providers, generateEpisodes } from "@/lib/mock-data";
+import { useDataStore } from "@/lib/data-store";
+import { generateEpisodes as fallbackGenerate } from "@/lib/mock-data";
 import type { Movie, Episode } from "@/lib/types";
 import {
   Plus, Search, Edit, Trash2, Eye, X, Check, Save, AlertCircle,
@@ -82,6 +83,7 @@ function MovieFormModal({ isOpen, onClose, onSubmit, initial, title }: {
   isOpen: boolean; onClose: () => void; onSubmit: (data: MovieFormData) => void;
   initial: MovieFormData; title: string;
 }) {
+  const { providers: storeProviders } = useDataStore();
   const [form, setForm] = useState<MovieFormData>(initial);
   const [errors, setErrors] = useState<string[]>([]);
 
@@ -203,7 +205,7 @@ function MovieFormModal({ isOpen, onClose, onSubmit, initial, title }: {
                 <select value={form.provider} onChange={(e) => setForm({ ...form, provider: e.target.value })}
                   className="w-full bg-dark-800 border border-dark-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-accent">
                   <option value="">Select provider</option>
-                  {providers.filter((p) => !p.isComingSoon).map((p) => <option key={p.id} value={p.name}>{p.name}</option>)}
+                  {storeProviders.filter((p: { isComingSoon: boolean }) => !p.isComingSoon).map((p: { id: string; name: string }) => <option key={p.id} value={p.name}>{p.name}</option>)}
                 </select>
               </div>
               <div>
@@ -236,8 +238,9 @@ function MovieFormModal({ isOpen, onClose, onSubmit, initial, title }: {
 function EpisodeManagerModal({ movie, onClose, showToast }: {
   movie: Movie; onClose: () => void; showToast: (msg: string, type?: "success" | "error") => void;
 }) {
+  const { getEpisodes: getStoredEpisodes, setEpisodes: saveEpisodesToStore } = useDataStore();
   const [episodes, setEpisodes] = useState<Episode[]>(() =>
-    generateEpisodes(movie.id, movie.totalEpisodes, movie.freeEpisodes)
+    getStoredEpisodes(movie.id, movie.totalEpisodes, movie.freeEpisodes)
   );
   const [editingEp, setEditingEp] = useState<EpisodeFormData | null>(null);
   const [editingIndex, setEditingIndex] = useState<number>(-1);
@@ -263,7 +266,7 @@ function EpisodeManagerModal({ movie, onClose, showToast }: {
       showToast("Video URL is required for non-VIP episodes.", "error");
       return;
     }
-    setEpisodes((prev: Episode[]) => prev.map((ep: Episode, i: number) =>
+    const updated = episodes.map((ep: Episode, i: number) =>
       i === editingIndex ? {
         ...ep,
         episodeNumber: editingEp.episodeNumber,
@@ -274,7 +277,9 @@ function EpisodeManagerModal({ movie, onClose, showToast }: {
         isFree: !editingEp.isVipLocked,
         isVipOnly: editingEp.isVipLocked,
       } : ep
-    ));
+    );
+    setEpisodes(updated);
+    saveEpisodesToStore(movie.id, updated);
     setEditingEp(null);
     setEditingIndex(-1);
     showToast(`Episode ${editingEp.episodeNumber} updated.`);
@@ -297,7 +302,9 @@ function EpisodeManagerModal({ movie, onClose, showToast }: {
       isFree: !editingEp.isVipLocked,
       isVipOnly: editingEp.isVipLocked,
     };
-    setEpisodes((prev: Episode[]) => [...prev, newEp].sort((a: Episode, b: Episode) => a.episodeNumber - b.episodeNumber));
+    const updated = [...episodes, newEp].sort((a: Episode, b: Episode) => a.episodeNumber - b.episodeNumber);
+    setEpisodes(updated);
+    saveEpisodesToStore(movie.id, updated);
     setEditingEp(null);
     setShowAddEp(false);
     showToast(`Episode ${newEp.episodeNumber} added.`);
@@ -305,7 +312,9 @@ function EpisodeManagerModal({ movie, onClose, showToast }: {
 
   const deleteEpisode = (idx: number) => {
     const ep = episodes[idx];
-    setEpisodes((prev: Episode[]) => prev.filter((_: Episode, i: number) => i !== idx));
+    const updated = episodes.filter((_: Episode, i: number) => i !== idx);
+    setEpisodes(updated);
+    saveEpisodesToStore(movie.id, updated);
     showToast(`Episode ${ep.episodeNumber} deleted.`, "error");
   };
 
@@ -318,12 +327,16 @@ function EpisodeManagerModal({ movie, onClose, showToast }: {
   };
 
   const lockAll = () => {
-    setEpisodes((prev: Episode[]) => prev.map((ep: Episode) => ({ ...ep, isFree: false, isVipOnly: true })));
+    const updated = episodes.map((ep: Episode) => ({ ...ep, isFree: false, isVipOnly: true }));
+    setEpisodes(updated);
+    saveEpisodesToStore(movie.id, updated);
     showToast("All episodes locked for VIP.", "error");
   };
 
   const unlockAll = () => {
-    setEpisodes((prev: Episode[]) => prev.map((ep: Episode) => ({ ...ep, isFree: true, isVipOnly: false })));
+    const updated = episodes.map((ep: Episode) => ({ ...ep, isFree: true, isVipOnly: false }));
+    setEpisodes(updated);
+    saveEpisodesToStore(movie.id, updated);
     showToast("All episodes unlocked (free).");
   };
 
@@ -463,7 +476,7 @@ function EpisodeManagerModal({ movie, onClose, showToast }: {
 
 // ============ MAIN PAGE ============
 export default function AdminMoviesPage() {
-  const [movieList, setMovieList] = useState<Movie[]>(initialMovies);
+  const { movies: movieList, addMovie, updateMovie, deleteMovie: storeDeleteMovie, providers: storeProviders } = useDataStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
@@ -500,35 +513,32 @@ export default function AdminMoviesPage() {
       isTrending: false, isNew: true, category: data.category,
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
     };
-    setMovieList((prev: Movie[]) => [movie, ...prev]);
+    addMovie(movie);
     showToast(`"${movie.title}" added. Use Episode Manager to add episodes.`);
   };
 
   const handleEdit = (data: MovieFormData) => {
     if (!editTarget) return;
-    setMovieList((prev: Movie[]) => prev.map((m: Movie) =>
-      m.id === editTarget.id ? {
-        ...m, title: data.title, slug: data.slug, synopsis: data.synopsis,
-        coverImage: data.coverImage || m.coverImage,
-        bannerImage: data.bannerImage || m.bannerImage,
-        videoUrl: data.videoUrl || m.videoUrl,
-        country: data.country, status: data.status,
-        genre: data.genre.split(",").map((g: string) => g.trim()).filter(Boolean),
-        provider: data.provider || m.provider,
-        providerSlug: (data.provider || m.providerSlug).toLowerCase().replace(/\s+/g, ""),
-        rating: data.rating, totalEpisodes: data.totalEpisodes, freeEpisodes: data.freeEpisodes,
-        year: data.year, isVipOnly: data.isVipOnly, category: data.category,
-        updatedAt: new Date().toISOString(),
-      } : m
-    ));
+    updateMovie(editTarget.id, {
+      title: data.title, slug: data.slug, synopsis: data.synopsis,
+      coverImage: data.coverImage || editTarget.coverImage,
+      bannerImage: data.bannerImage || editTarget.bannerImage,
+      videoUrl: data.videoUrl || editTarget.videoUrl,
+      country: data.country, status: data.status,
+      genre: data.genre.split(",").map((g: string) => g.trim()).filter(Boolean),
+      provider: data.provider || editTarget.provider,
+      providerSlug: (data.provider || editTarget.providerSlug).toLowerCase().replace(/\s+/g, ""),
+      rating: data.rating, totalEpisodes: data.totalEpisodes, freeEpisodes: data.freeEpisodes,
+      year: data.year, isVipOnly: data.isVipOnly, category: data.category,
+    });
     setEditTarget(null);
     showToast(`"${data.title}" updated.`);
   };
-
+  
   const handleDelete = () => {
     if (!deleteTarget) return;
     const movie = movieList.find((m: Movie) => m.id === deleteTarget);
-    setMovieList((prev: Movie[]) => prev.filter((m: Movie) => m.id !== deleteTarget));
+    storeDeleteMovie(deleteTarget);
     setDeleteTarget(null);
     showToast(`"${movie?.title}" deleted.`, "error");
   };

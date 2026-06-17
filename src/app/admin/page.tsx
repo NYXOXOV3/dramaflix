@@ -1,10 +1,12 @@
-import { Film, Users, Crown, Eye, TrendingUp, DollarSign, UserPlus, Activity } from "lucide-react";
-import { movies, providers, vipPlans } from "@/lib/mock-data";
+"use client";
 
-export const metadata = { title: "Admin Dashboard" };
+import { Film, Users, Crown, Eye, TrendingUp, DollarSign, UserPlus, Activity } from "lucide-react";
+import { vipPlans } from "@/lib/mock-data";
+import { useDataStore } from "@/lib/data-store";
 
 export default function AdminDashboard() {
-  const totalViews = movies.reduce((sum, m) => sum + m.views, 0);
+  const { movies, providers } = useDataStore();
+  const totalViews = movies.reduce((sum: number, m: { views: number }) => sum + m.views, 0);
   const totalMovies = movies.length;
   const totalProviders = providers.filter((p) => !p.isComingSoon).length;
   const vipUsers = 247; // mock

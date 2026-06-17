@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { providers as initialProviders } from "@/lib/mock-data";
+import { useDataStore } from "@/lib/data-store";
 import type { Provider } from "@/lib/types";
 import { Plus, Search, Edit, Trash2, Film, Crown, Clock, X, Save, Check, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function AdminProvidersPage() {
-  const [providerList, setProviderList] = useState<Provider[]>(initialProviders);
+  const { providers: providerList, addProvider, updateProvider: storeUpdateProvider, deleteProvider: storeDeleteProvider } = useDataStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editTarget, setEditTarget] = useState<Provider | null>(null);
@@ -29,7 +29,7 @@ export default function AdminProvidersPage() {
       slug: form.slug.trim() || form.name.toLowerCase().replace(/\s+/g, "-"),
       logo: "", totalMovies: 0, isVipOnly: form.isVipOnly, isComingSoon: form.isComingSoon,
     };
-    setProviderList((prev: Provider[]) => [...prev, provider]);
+    addProvider(provider);
     setShowAddModal(false);
     setForm({ name: "", slug: "", isVipOnly: false, isComingSoon: false });
     showToast(`"${provider.name}" has been added.`);
@@ -37,9 +37,12 @@ export default function AdminProvidersPage() {
 
   const handleEdit = () => {
     if (!editTarget || !form.name.trim()) return;
-    setProviderList((prev: Provider[]) => prev.map((p: Provider) =>
-      p.id === editTarget.id ? { ...p, name: form.name.trim(), slug: form.slug.trim() || p.slug, isVipOnly: form.isVipOnly, isComingSoon: form.isComingSoon } : p
-    ));
+    storeUpdateProvider(editTarget.id, {
+      name: form.name.trim(),
+      slug: form.slug.trim() || editTarget.slug,
+      isVipOnly: form.isVipOnly,
+      isComingSoon: form.isComingSoon,
+    });
     showToast(`"${form.name}" has been updated.`);
     setEditTarget(null);
   };
@@ -47,7 +50,7 @@ export default function AdminProvidersPage() {
   const handleDelete = () => {
     if (!deleteTarget) return;
     const provider = providerList.find((p: Provider) => p.id === deleteTarget);
-    setProviderList((prev: Provider[]) => prev.filter((p: Provider) => p.id !== deleteTarget));
+    storeDeleteProvider(deleteTarget);
     setDeleteTarget(null);
     showToast(`"${provider?.name}" has been deleted.`, "error");
   };
