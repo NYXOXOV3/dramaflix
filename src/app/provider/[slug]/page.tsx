@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { notFound, useParams } from "next/navigation";
-import { useDataStore } from "@/lib/data-store";
+import { useData } from "@/lib/data-store";
 import MovieCard from "@/components/MovieCard";
 import { ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -11,7 +11,7 @@ import type { Movie, Provider } from "@/lib/types";
 export default function ProviderPage() {
   const params = useParams();
   const slug = params?.slug as string;
-  const { getProviderBySlug, getMoviesByProvider } = useDataStore();
+  const { getProviderBySlug, getMoviesByProvider } = useData();
   const [provider, setProvider] = useState<Provider | undefined>(undefined);
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);

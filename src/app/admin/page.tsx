@@ -2,10 +2,10 @@
 
 import { Film, Users, Crown, Eye, TrendingUp, DollarSign, UserPlus, Activity } from "lucide-react";
 import { vipPlans } from "@/lib/mock-data";
-import { useDataStore } from "@/lib/data-store";
+import { useData } from "@/lib/data-store";
 
 export default function AdminDashboard() {
-  const { movies, providers } = useDataStore();
+  const { movies, providers } = useData();
   const totalViews = movies.reduce((sum: number, m: { views: number }) => sum + m.views, 0);
   const totalMovies = movies.length;
   const totalProviders = providers.filter((p) => !p.isComingSoon).length;

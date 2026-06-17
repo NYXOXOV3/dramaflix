@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { useDataStore } from "@/lib/data-store";
+import { useData } from "@/lib/data-store";
 import { generateEpisodes as fallbackGenerate } from "@/lib/mock-data";
 import type { Movie, Episode } from "@/lib/types";
 import {
@@ -83,7 +83,7 @@ function MovieFormModal({ isOpen, onClose, onSubmit, initial, title }: {
   isOpen: boolean; onClose: () => void; onSubmit: (data: MovieFormData) => void;
   initial: MovieFormData; title: string;
 }) {
-  const { providers: storeProviders } = useDataStore();
+  const { providers: storeProviders } = useData();
   const [form, setForm] = useState<MovieFormData>(initial);
   const [errors, setErrors] = useState<string[]>([]);
 
@@ -238,7 +238,7 @@ function MovieFormModal({ isOpen, onClose, onSubmit, initial, title }: {
 function EpisodeManagerModal({ movie, onClose, showToast }: {
   movie: Movie; onClose: () => void; showToast: (msg: string, type?: "success" | "error") => void;
 }) {
-  const { getEpisodes: getStoredEpisodes, setEpisodes: saveEpisodesToStore } = useDataStore();
+  const { getEpisodes: getStoredEpisodes, setEpisodes: saveEpisodesToStore } = useData();
   const [episodes, setEpisodes] = useState<Episode[]>(() =>
     getStoredEpisodes(movie.id, movie.totalEpisodes, movie.freeEpisodes)
   );
@@ -476,7 +476,7 @@ function EpisodeManagerModal({ movie, onClose, showToast }: {
 
 // ============ MAIN PAGE ============
 export default function AdminMoviesPage() {
-  const { movies: movieList, addMovie, updateMovie, deleteMovie: storeDeleteMovie, providers: storeProviders } = useDataStore();
+  const { movies: movieList, addMovie, updateMovie, deleteMovie: storeDeleteMovie, providers: storeProviders } = useData();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { notFound, useParams } from "next/navigation";
-import { useDataStore } from "@/lib/data-store";
+import { useData } from "@/lib/data-store";
 import { ArrowLeft, ChevronLeft, ChevronRight, Share2, Lock, Crown, Play } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Movie, Episode } from "@/lib/types";
@@ -11,7 +11,7 @@ export default function WatchPage() {
   const params = useParams();
   const slug = params?.slug as string;
   const episodeParam = params?.episode as string;
-  const { getMovieBySlug, getEpisodes } = useDataStore();
+  const { getMovieBySlug, getEpisodes } = useData();
   const [movie, setMovie] = useState<Movie | undefined>(undefined);
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [loading, setLoading] = useState(true);

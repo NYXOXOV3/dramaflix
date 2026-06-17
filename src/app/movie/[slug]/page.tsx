@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { notFound, useParams } from "next/navigation";
-import { useDataStore } from "@/lib/data-store";
+import { useData } from "@/lib/data-store";
 import { Star, Play, Crown, Heart, Share2, Download, ArrowLeft, Lock } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
 import { useEffect, useState } from "react";
@@ -11,7 +11,7 @@ import type { Movie, Episode } from "@/lib/types";
 export default function MovieDetailPage() {
   const params = useParams();
   const slug = params?.slug as string;
-  const { getMovieBySlug, getEpisodes } = useDataStore();
+  const { getMovieBySlug, getEpisodes } = useData();
   const [movie, setMovie] = useState<Movie | undefined>(undefined);
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [loading, setLoading] = useState(true);

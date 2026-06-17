@@ -1,10 +1,10 @@
 "use client";
 
-import { useDataStore } from "@/lib/data-store";
+import { useData } from "@/lib/data-store";
 import MovieCard from "@/components/MovieCard";
 
 export default function AnimePage() {
-  const { getMoviesByCategory } = useDataStore();
+  const { getMoviesByCategory } = useData();
   const animeList = getMoviesByCategory("anime");
 
   return (

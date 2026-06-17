@@ -1,6 +1,6 @@
 "use client";
 
-import { useDataStore } from "@/lib/data-store";
+import { useData } from "@/lib/data-store";
 import MovieCard from "@/components/MovieCard";
 import Carousel from "@/components/Carousel";
 import PromoBanner from "@/components/PromoBanner";
@@ -8,7 +8,7 @@ import RankingSection from "@/components/RankingSection";
 import HeroSection from "@/components/HeroSection";
 
 export default function HomePage() {
-  const { movies, getTrendingMovies, getNewMovies, getMoviesByCategory } = useDataStore();
+  const { movies, getTrendingMovies, getNewMovies, getMoviesByCategory } = useData();
   const trending = getTrendingMovies();
   const newMovies = getNewMovies();
   const animeList = getMoviesByCategory("anime");

@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useDataStore } from "@/lib/data-store";
+import { useData } from "@/lib/data-store";
 import type { Provider } from "@/lib/types";
 import { Plus, Search, Edit, Trash2, Film, Crown, Clock, X, Save, Check, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function AdminProvidersPage() {
-  const { providers: providerList, addProvider, updateProvider: storeUpdateProvider, deleteProvider: storeDeleteProvider } = useDataStore();
+  const { providers: providerList, addProvider, updateProvider: storeUpdateProvider, deleteProvider: storeDeleteProvider } = useData();
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editTarget, setEditTarget] = useState<Provider | null>(null);

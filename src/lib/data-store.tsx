@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import { useState, useEffect, useCallback, useSyncExternalStore } from "react";
 import type { Movie, Episode, Provider } from "@/lib/types";
 import {
   movies as seedMovies,
@@ -8,172 +8,193 @@ import {
   generateEpisodes as seedGenerateEpisodes,
 } from "@/lib/mock-data";
 
-// ============ STORAGE KEYS ============
+// ============================================================
+// MODULE-LEVEL SINGLETON STORE
+// This guarantees ALL components share the same data regardless
+// of React Context tree structure or layout boundaries.
+// ============================================================
+
 const MOVIES_KEY = "dramaflix_movies";
 const PROVIDERS_KEY = "dramaflix_providers";
-const EPISODES_KEY = "dramaflix_episodes"; // keyed by movieId
+const EPISODES_KEY = "dramaflix_episodes";
+const CHANGE_EVENT = "dramaflix:data-changed";
 
-// ============ TYPES ============
-interface DataStoreContextType {
-  movies: Movie[];
-  providers: Provider[];
-  getEpisodes: (movieId: string, totalEps: number, freeEps: number) => Episode[];
+// The single source of truth - module-level variables
+let _movies: Movie[] = [];
+let _providers: Provider[] = [];
+let _episodesMap: Record<string, Episode[]> = {};
+let _initialized = false;
 
-  // Movie CRUD
-  addMovie: (movie: Movie) => void;
-  updateMovie: (id: string, data: Partial<Movie>) => void;
-  deleteMovie: (id: string) => void;
-  getMovieBySlug: (slug: string) => Movie | undefined;
-  searchMovies: (query: string) => Movie[];
-  getMoviesByCategory: (cat: Movie["category"]) => Movie[];
-  getMoviesByProvider: (slug: string) => Movie[];
-  getTrendingMovies: () => Movie[];
-  getNewMovies: () => Movie[];
-  getRankings: (period: "daily" | "weekly" | "monthly" | "yearly") => Movie[];
-
-  // Provider CRUD
-  addProvider: (provider: Provider) => void;
-  updateProvider: (id: string, data: Partial<Provider>) => void;
-  deleteProvider: (id: string) => void;
-  getProviderBySlug: (slug: string) => Provider | undefined;
-
-  // Episode management
-  setEpisodes: (movieId: string, episodes: Episode[]) => void;
-}
-
-const DataStoreContext = createContext<DataStoreContextType | null>(null);
-
-export function useDataStore() {
-  const ctx = useContext(DataStoreContext);
-  if (!ctx) throw new Error("useDataStore must be used within DataStoreProvider");
-  return ctx;
-}
-
-// ============ HELPERS ============
-function loadFromStorage<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
+// ---- LocalStorage helpers ----
+function loadLS<T>(key: string): T | null {
   try {
-    const stored = localStorage.getItem(key);
-    if (stored) return JSON.parse(stored) as T;
-  } catch { /* ignore */ }
-  return fallback;
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
 }
 
-function saveToStorage<T>(key: string, data: T) {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(key, JSON.stringify(data));
-  } catch { /* ignore quota errors */ }
+function saveLS(key: string, data: unknown) {
+  try { localStorage.setItem(key, JSON.stringify(data)); } catch { /* quota */ }
 }
 
-// ============ PROVIDER COMPONENT ============
-export function DataStoreProvider({ children }: { children: ReactNode }) {
-  const [movies, setMovies] = useState<Movie[]>(() => loadFromStorage(MOVIES_KEY, seedMovies));
-  const [providers, setProviders] = useState<Provider[]>(() => loadFromStorage(PROVIDERS_KEY, seedProviders));
-  const [episodesMap, setEpisodesMap] = useState<Record<string, Episode[]>>(() =>
-    loadFromStorage(EPISODES_KEY, {} as Record<string, Episode[]>)
+// ---- Notify all subscribers ----
+function notify() {
+  window.dispatchEvent(new CustomEvent(CHANGE_EVENT));
+}
+
+// ---- Initialize once ----
+function initStore() {
+  if (_initialized) return;
+  _initialized = true;
+
+  const storedMovies = loadLS<Movie[]>(MOVIES_KEY);
+  const storedProviders = loadLS<Provider[]>(PROVIDERS_KEY);
+  const storedEpisodes = loadLS<Record<string, Episode[]>>(EPISODES_KEY);
+
+  _movies = (storedMovies && storedMovies.length > 0) ? storedMovies : [...seedMovies];
+  _providers = (storedProviders && storedProviders.length > 0) ? storedProviders : [...seedProviders];
+  _episodesMap = storedEpisodes || {};
+
+  // Persist initial state
+  saveLS(MOVIES_KEY, _movies);
+  saveLS(PROVIDERS_KEY, _providers);
+  saveLS(EPISODES_KEY, _episodesMap);
+}
+
+// ---- Movie CRUD ----
+function addMovie(movie: Movie) {
+  _movies = [movie, ..._movies];
+  saveLS(MOVIES_KEY, _movies);
+  notify();
+}
+
+function updateMovie(id: string, data: Partial<Movie>) {
+  _movies = _movies.map((m) => m.id === id ? { ...m, ...data, updatedAt: new Date().toISOString() } : m);
+  saveLS(MOVIES_KEY, _movies);
+  notify();
+}
+
+function deleteMovie(id: string) {
+  _movies = _movies.filter((m) => m.id !== id);
+  const eps = { ..._episodesMap };
+  delete eps[id];
+  _episodesMap = eps;
+  saveLS(MOVIES_KEY, _movies);
+  saveLS(EPISODES_KEY, _episodesMap);
+  notify();
+}
+
+// ---- Provider CRUD ----
+function addProvider(provider: Provider) {
+  _providers = [..._providers, provider];
+  saveLS(PROVIDERS_KEY, _providers);
+  notify();
+}
+
+function updateProvider(id: string, data: Partial<Provider>) {
+  _providers = _providers.map((p) => p.id === id ? { ...p, ...data } : p);
+  saveLS(PROVIDERS_KEY, _providers);
+  notify();
+}
+
+function deleteProvider(id: string) {
+  _providers = _providers.filter((p) => p.id !== id);
+  saveLS(PROVIDERS_KEY, _providers);
+  notify();
+}
+
+// ---- Episode management ----
+function setEpisodes(movieId: string, episodes: Episode[]) {
+  _episodesMap = { ..._episodesMap, [movieId]: episodes };
+  saveLS(EPISODES_KEY, _episodesMap);
+  notify();
+}
+
+function getEpisodes(movieId: string, totalEps: number, freeEps: number): Episode[] {
+  if (_episodesMap[movieId] && _episodesMap[movieId].length > 0) {
+    return _episodesMap[movieId];
+  }
+  return seedGenerateEpisodes(movieId, totalEps, freeEps);
+}
+
+// ---- Query helpers ----
+function getMovieBySlug(slug: string) { return _movies.find((m) => m.slug === slug); }
+function getProviderBySlug(slug: string) { return _providers.find((p) => p.slug === slug); }
+function searchMovies(query: string) {
+  const q = query.toLowerCase();
+  return _movies.filter((m) =>
+    m.title.toLowerCase().includes(q) || m.synopsis.toLowerCase().includes(q) ||
+    m.genre.some((g) => g.toLowerCase().includes(q)) || m.provider.toLowerCase().includes(q)
   );
-  const [isHydrated, setIsHydrated] = useState(false);
+}
+function getMoviesByCategory(cat: Movie["category"]) { return _movies.filter((m) => m.category === cat); }
+function getMoviesByProvider(slug: string) { return _movies.filter((m) => m.providerSlug === slug); }
+function getTrendingMovies() { return _movies.filter((m) => m.isTrending); }
+function getNewMovies() { return _movies.filter((m) => m.isNew); }
+function getRankings(period: "daily" | "weekly" | "monthly" | "yearly") {
+  const mult = period === "daily" ? 1 : period === "weekly" ? 3 : period === "monthly" ? 7 : 30;
+  return [..._movies].sort((a, b) => (b.views * mult * (b.rating / 5)) - (a.views * mult * (a.rating / 5))).slice(0, 10);
+}
 
-  // Hydrate from localStorage on mount
-  useEffect(() => {
-    const storedMovies = loadFromStorage<Movie[]>(MOVIES_KEY, []);
-    const storedProviders = loadFromStorage<Provider[]>(PROVIDERS_KEY, []);
-    const storedEpisodes = loadFromStorage<Record<string, Episode[]>>(EPISODES_KEY, {});
+// ============================================================
+// useSyncExternalStore for guaranteed cross-component sync
+// ============================================================
 
-    setMovies(storedMovies.length > 0 ? storedMovies : seedMovies);
-    setProviders(storedProviders.length > 0 ? storedProviders : seedProviders);
-    setEpisodesMap(storedEpisodes);
-    setIsHydrated(true);
-  }, []);
+function subscribe(callback: () => void) {
+  const handler = () => callback();
+  window.addEventListener(CHANGE_EVENT, handler);
+  return () => window.removeEventListener(CHANGE_EVENT, handler);
+}
 
-  // Persist to localStorage on changes
-  useEffect(() => { if (isHydrated) saveToStorage(MOVIES_KEY, movies); }, [movies, isHydrated]);
-  useEffect(() => { if (isHydrated) saveToStorage(PROVIDERS_KEY, providers); }, [providers, isHydrated]);
-  useEffect(() => { if (isHydrated) saveToStorage(EPISODES_KEY, episodesMap); }, [episodesMap, isHydrated]);
+function getSnapshot() {
+  // Return a version counter that changes on every mutation
+  return _movies.length + _providers.length + Object.keys(_episodesMap).length;
+}
 
-  // ============ EPISODE MANAGEMENT ============
-  const getEpisodes = useCallback((movieId: string, totalEps: number, freeEps: number): Episode[] => {
-    if (episodesMap[movieId] && episodesMap[movieId].length > 0) {
-      return episodesMap[movieId];
-    }
-    // Generate fallback episodes
-    return seedGenerateEpisodes(movieId, totalEps, freeEps);
-  }, [episodesMap]);
+function getServerSnapshot() {
+  return seedMovies.length + seedProviders.length;
+}
 
-  const setEpisodes = useCallback((movieId: string, episodes: Episode[]) => {
-    setEpisodesMap((prev) => ({ ...prev, [movieId]: episodes }));
-  }, []);
+// ============================================================
+// THE HOOK - Every component that calls this will auto-update
+// when ANY data changes anywhere in the app
+// ============================================================
 
-  // ============ MOVIE CRUD ============
-  const addMovie = useCallback((movie: Movie) => {
-    setMovies((prev) => [movie, ...prev]);
-  }, []);
+export function useData() {
+  // Force re-render when data changes
+  useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
-  const updateMovie = useCallback((id: string, data: Partial<Movie>) => {
-    setMovies((prev) => prev.map((m) => (m.id === id ? { ...m, ...data, updatedAt: new Date().toISOString() } : m)));
-  }, []);
+  // Initialize on first client render
+  useEffect(() => { initStore(); notify(); }, []);
 
-  const deleteMovie = useCallback((id: string) => {
-    setMovies((prev) => prev.filter((m) => m.id !== id));
-    setEpisodesMap((prev) => {
-      const copy = { ...prev };
-      delete copy[id];
-      return copy;
-    });
-  }, []);
+  // Return stable references to all data + CRUD operations
+  return {
+    // Data (always reads from module-level singleton)
+    get movies() { return _movies; },
+    get providers() { return _providers; },
 
-  const getMovieBySlugFn = useCallback((slug: string) => movies.find((m) => m.slug === slug), [movies]);
+    // Movie CRUD
+    addMovie,
+    updateMovie,
+    deleteMovie,
 
-  const searchMoviesFn = useCallback((query: string) => {
-    const q = query.toLowerCase();
-    return movies.filter(
-      (m) => m.title.toLowerCase().includes(q) || m.synopsis.toLowerCase().includes(q) ||
-        m.genre.some((g) => g.toLowerCase().includes(q)) || m.provider.toLowerCase().includes(q)
-    );
-  }, [movies]);
+    // Provider CRUD
+    addProvider,
+    updateProvider,
+    deleteProvider,
 
-  const getMoviesByCategoryFn = useCallback((cat: Movie["category"]) => movies.filter((m) => m.category === cat), [movies]);
-  const getMoviesByProviderFn = useCallback((slug: string) => movies.filter((m) => m.providerSlug === slug), [movies]);
-  const getTrendingFn = useCallback(() => movies.filter((m) => m.isTrending), [movies]);
-  const getNewFn = useCallback(() => movies.filter((m) => m.isNew), [movies]);
+    // Episodes
+    getEpisodes,
+    setEpisodes,
 
-  const getRankingsFn = useCallback((period: "daily" | "weekly" | "monthly" | "yearly") => {
-    const mult = period === "daily" ? 1 : period === "weekly" ? 3 : period === "monthly" ? 7 : 30;
-    return [...movies].sort((a, b) => (b.views * mult * (b.rating / 5)) - (a.views * mult * (a.rating / 5))).slice(0, 10);
-  }, [movies]);
-
-  // ============ PROVIDER CRUD ============
-  const addProvider = useCallback((provider: Provider) => {
-    setProviders((prev) => [...prev, provider]);
-  }, []);
-
-  const updateProvider = useCallback((id: string, data: Partial<Provider>) => {
-    setProviders((prev) => prev.map((p) => (p.id === id ? { ...p, ...data } : p)));
-  }, []);
-
-  const deleteProvider = useCallback((id: string) => {
-    setProviders((prev) => prev.filter((p) => p.id !== id));
-  }, []);
-
-  const getProviderBySlugFn = useCallback((slug: string) => providers.find((p) => p.slug === slug), [providers]);
-
-  return (
-    <DataStoreContext.Provider value={{
-      movies, providers, getEpisodes,
-      addMovie, updateMovie, deleteMovie,
-      getMovieBySlug: getMovieBySlugFn,
-      searchMovies: searchMoviesFn,
-      getMoviesByCategory: getMoviesByCategoryFn,
-      getMoviesByProvider: getMoviesByProviderFn,
-      getTrendingMovies: getTrendingFn,
-      getNewMovies: getNewFn,
-      getRankings: getRankingsFn,
-      addProvider, updateProvider, deleteProvider,
-      getProviderBySlug: getProviderBySlugFn,
-      setEpisodes,
-    }}>
-      {children}
-    </DataStoreContext.Provider>
-  );
+    // Queries
+    getMovieBySlug,
+    getProviderBySlug,
+    searchMovies,
+    getMoviesByCategory,
+    getMoviesByProvider,
+    getTrendingMovies,
+    getNewMovies,
+    getRankings,
+  };
 }
