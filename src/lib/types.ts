@@ -6,6 +6,7 @@ export interface Movie {
   synopsis: string;
   coverImage: string;
   bannerImage?: string;
+  videoUrl?: string;
   country: string;
   status: "Ongoing" | "Completed";
   genre: string[];
