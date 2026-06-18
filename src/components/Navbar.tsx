@@ -224,12 +224,22 @@ export default function Navbar() {
                         <p className="text-xs font-medium text-white truncate">{user.name}</p>
                         <p className="text-[11px] text-dark-400 truncate">{user.email}</p>
                       </div>
-                      <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-danger hover:bg-danger/10 rounded-lg transition-all"
-                      >
-                        <LogOut size={14} /> Sign Out
-                      </button>
+                      <Link href="/profile" onClick={() => setIsUserMenuOpen(false)}
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-dark-300 hover:text-white hover:bg-dark-700 rounded-lg transition-all">
+                        <User size={14} /> My Profile
+                      </Link>
+                      <Link href="/subscription" onClick={() => setIsUserMenuOpen(false)}
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-dark-300 hover:text-white hover:bg-dark-700 rounded-lg transition-all">
+                        <Crown size={14} /> Subscription
+                      </Link>
+                      <div className="border-t border-dark-700 mt-1 pt-1">
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-danger hover:bg-danger/10 rounded-lg transition-all"
+                        >
+                          <LogOut size={14} /> Sign Out
+                        </button>
+                      </div>
                     </div>
                   </>
                 )}
@@ -305,6 +315,14 @@ export default function Navbar() {
                         <p className="text-[11px] text-dark-400 truncate">{user.email}</p>
                       </div>
                     </div>
+                    <Link href="/profile" onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 text-dark-300 hover:bg-dark-800 hover:text-white rounded-xl transition-all">
+                      <User size={16} /> My Profile
+                    </Link>
+                    <Link href="/subscription" onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 text-dark-300 hover:bg-dark-800 hover:text-white rounded-xl transition-all">
+                      <Crown size={16} /> Subscription
+                    </Link>
                     <button
                       onClick={handleLogout}
                       className="w-full flex items-center gap-3 px-4 py-3 text-danger hover:bg-danger/10 rounded-xl transition-all font-medium"

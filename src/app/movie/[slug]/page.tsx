@@ -7,6 +7,8 @@ import { Star, Play, Crown, Heart, Share2, Download, ArrowLeft, Lock, ExternalLi
 import { formatNumber } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import type { Movie, Episode } from "@/lib/types";
+import StarRating from "@/components/StarRating";
+import ShareButton from "@/components/ShareButton";
 
 interface TmdbData {
   title: string; originalTitle: string; synopsis: string; coverImage: string;
@@ -19,12 +21,14 @@ interface TmdbData {
 export default function MovieDetailPage() {
   const params = useParams();
   const slug = params?.slug as string;
-  const { getMovieBySlug, getEpisodes } = useData();
+  const { getMovieBySlug, getEpisodes, incrementView, rateMovie, getUserRating } = useData();
   const [movie, setMovie] = useState<Movie | undefined>(undefined);
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [tmdb, setTmdb] = useState<TmdbData | null>(null);
   const [loading, setLoading] = useState(true);
   const [tmdbLoading, setTmdbLoading] = useState(false);
+  const [viewCounted, setViewCounted] = useState(false);
+  const [userRating, setUserRating] = useState(0);
 
   useEffect(() => {
     if (slug) {
@@ -36,6 +40,21 @@ export default function MovieDetailPage() {
       setLoading(false);
     }
   }, [slug, getMovieBySlug, getEpisodes]);
+
+  // Increment view count once
+  useEffect(() => {
+    if (movie && !viewCounted) {
+      incrementView(movie.id);
+      setViewCounted(true);
+    }
+  }, [movie, viewCounted, incrementView]);
+
+  // Load user rating
+  useEffect(() => {
+    if (movie) {
+      setUserRating(getUserRating(movie.id));
+    }
+  }, [movie, getUserRating]);
 
   // Fetch TMDB data if tmdbId is set
   useEffect(() => {
@@ -146,12 +165,21 @@ export default function MovieDetailPage() {
             <button className="inline-flex items-center gap-2 px-4 py-3 bg-dark-700 hover:bg-dark-600 text-white rounded-xl transition-all">
               <Heart size={18} /> My List
             </button>
-            <button className="inline-flex items-center gap-2 px-4 py-3 bg-dark-700 hover:bg-dark-600 text-white rounded-xl transition-all">
-              <Share2 size={18} /> Share
-            </button>
+            <ShareButton url={`/movie/${movie.slug}`} title={movie.title} />
             <Link href="/download" className="inline-flex items-center gap-2 px-4 py-3 bg-dark-700 hover:bg-dark-600 text-white rounded-xl transition-all">
               <Download size={18} /> App
             </Link>
+          </div>
+
+          {/* User Rating */}
+          <div className="pt-2">
+            <p className="text-xs font-medium text-dark-400 mb-2">Rate this:</p>
+            <StarRating
+              value={displayRating}
+              userRating={userRating}
+              onRate={(r) => { rateMovie(movie.id, r); setUserRating(r); }}
+              size={22}
+            />
           </div>
 
           {/* TMDB Info Badge */}

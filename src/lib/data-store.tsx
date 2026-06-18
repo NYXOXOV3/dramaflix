@@ -177,6 +177,51 @@ function getRankings(period: "daily" | "weekly" | "monthly" | "yearly") {
   return [..._movies].sort((a, b) => (b.views * mult * (b.rating / 5)) - (a.views * mult * (a.rating / 5))).slice(0, 10);
 }
 
+// ---- View counting ----
+function incrementView(movieId: string) {
+  _movies = _movies.map((m) => m.id === movieId ? { ...m, views: m.views + 1 } : m);
+  saveLS(MOVIES_KEY, _movies);
+  notify();
+}
+
+// ---- Rating ----
+const RATINGS_KEY = "dramaflix_ratings";
+
+function rateMovie(movieId: string, rating: number, userId?: string) {
+  // Update movie's average rating
+  const raw = loadLS<Record<string, Array<{ userId: string; rating: number; date: string }>>>(RATINGS_KEY) || {};
+  if (!raw[movieId]) raw[movieId] = [];
+  // Remove existing rating from same user/guest
+  const key = userId || "guest_" + (typeof window !== "undefined" ? localStorage.getItem("dramaflix_guest_id") || "anon" : "anon");
+  raw[movieId] = raw[movieId].filter((r) => r.userId !== key);
+  raw[movieId].push({ userId: key, rating, date: new Date().toISOString() });
+  saveLS(RATINGS_KEY, raw);
+  // Recalculate average
+  const ratings = raw[movieId];
+  const avg = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
+  _movies = _movies.map((m) => m.id === movieId ? { ...m, rating: Math.round(avg * 10) / 10 } : m);
+  saveLS(MOVIES_KEY, _movies);
+  notify();
+}
+
+function getUserRating(movieId: string, userId?: string): number {
+  const raw = loadLS<Record<string, Array<{ userId: string; rating: number }>>>(RATINGS_KEY) || {};
+  const key = userId || "guest_" + (typeof window !== "undefined" ? localStorage.getItem("dramaflix_guest_id") || "anon" : "anon");
+  const entry = (raw[movieId] || []).find((r) => r.userId === key);
+  return entry?.rating || 0;
+}
+
+// ---- Guest ID ----
+function getOrCreateGuestId(): string {
+  if (typeof window === "undefined") return "anon";
+  let id = localStorage.getItem("dramaflix_guest_id");
+  if (!id) {
+    id = "guest_" + Math.random().toString(36).substring(2, 10);
+    localStorage.setItem("dramaflix_guest_id", id);
+  }
+  return id;
+}
+
 // ============================================================
 // useSyncExternalStore - reliable cross-component sync
 // ============================================================
@@ -242,5 +287,10 @@ export function useData() {
     getTrendingMovies,
     getNewMovies,
     getRankings,
+
+    incrementView,
+    rateMovie,
+    getUserRating,
+    getOrCreateGuestId,
   };
 }
