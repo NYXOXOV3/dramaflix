@@ -29,6 +29,7 @@ export default function VipPage() {
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>("select-method");
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
   const [paymentData, setPaymentData] = useState<Record<string, string> | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [tripayConfig, setTripayConfig] = useState<{ apiKey: string; mode: string } | null>(null);
@@ -66,13 +67,14 @@ export default function VipPage() {
         const user = JSON.parse(session);
         setCustomerName(user.name || "");
         setCustomerEmail(user.email || "");
+        setCustomerPhone(user.phone || "");
       }
     } catch { /* ignore */ }
     loadChannels();
   };
 
   const handleCreatePayment = async () => {
-    if (!selectedMethod || !customerName || !customerEmail || !selectedPlan) return;
+    if (!selectedMethod || !customerName || !customerEmail || !customerPhone || !selectedPlan) return;
     const plan = vipPlans.find((p) => p.id === selectedPlan);
     if (!plan || !tripayConfig) return;
 
@@ -91,6 +93,7 @@ export default function VipPage() {
           amount: plan.price,
           customerName,
           customerEmail,
+          customerPhone,
           planName: plan.name,
           apiKey: config.apiKey,
           privateKey: config.privateKey,
@@ -291,6 +294,12 @@ export default function VipPage() {
                     <input type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)}
                       className="w-full bg-dark-800 border border-dark-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-accent" />
                   </div>
+                  <div>
+                    <label className="block text-xs font-medium text-dark-300 mb-1.5">Phone Number <span className="text-dark-500">(required)</span></label>
+                    <input type="tel" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)}
+                      placeholder="08xxxxxxxxxx"
+                      className="w-full bg-dark-800 border border-dark-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-accent" />
+                  </div>
                 </div>
                 <div className="p-3 bg-dark-800 rounded-xl mb-6">
                   <div className="flex justify-between text-sm"><span className="text-dark-300">Method</span><span className="text-white">{channels.find((c) => c.code === selectedMethod)?.name}</span></div>
@@ -298,7 +307,7 @@ export default function VipPage() {
                 </div>
                 <div className="flex gap-3">
                   <button onClick={() => setCheckoutStep("select-method")} className="flex-1 py-3 bg-dark-800 text-white rounded-xl">Back</button>
-                  <button onClick={handleCreatePayment} disabled={!customerName || !customerEmail}
+                  <button onClick={handleCreatePayment} disabled={!customerName || !customerEmail || !customerPhone}
                     className="flex-1 py-3 bg-accent hover:bg-accent-dark disabled:opacity-50 text-dark-950 font-bold rounded-xl transition-all">
                     Pay Now
                   </button>

@@ -37,7 +37,7 @@ export default function TriPaySettingsPage() {
   // Test transaction state
   const [testTxLoading, setTestTxLoading] = useState(false);
   const [testTxResult, setTestTxResult] = useState<{ success: boolean; data?: Record<string, unknown>; error?: string } | null>(null);
-  const [testForm, setTestForm] = useState({ method: "BRIVA", amount: "10000", customerName: "Test User", customerEmail: "test@example.com" });
+  const [testForm, setTestForm] = useState({ method: "BRIVA", amount: "10000", customerName: "Test User", customerEmail: "test@example.com", customerPhone: "08123456789" });
 
   useEffect(() => {
     const stored = localStorage.getItem(TRIPAY_CONFIG_KEY);
@@ -98,6 +98,7 @@ export default function TriPaySettingsPage() {
           amount: parseInt(testForm.amount),
           customerName: testForm.customerName,
           customerEmail: testForm.customerEmail,
+          customerPhone: testForm.customerPhone,
           planName: "Test Transaction",
           apiKey: config.apiKey,
           privateKey: config.privateKey,
@@ -263,6 +264,12 @@ export default function TriPaySettingsPage() {
           <div>
             <label className="block text-xs font-medium text-dark-300 mb-1.5">Customer Email</label>
             <input type="email" value={testForm.customerEmail} onChange={(e) => setTestForm({ ...testForm, customerEmail: e.target.value })}
+              className="w-full bg-dark-800 border border-dark-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-accent" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-dark-300 mb-1.5">Phone Number</label>
+            <input type="tel" value={testForm.customerPhone} onChange={(e) => setTestForm({ ...testForm, customerPhone: e.target.value })}
+              placeholder="08xxxxxxxxxx"
               className="w-full bg-dark-800 border border-dark-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-accent" />
           </div>
         </div>

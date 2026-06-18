@@ -106,8 +106,8 @@ async function handleCreate(request: NextRequest) {
 
     const { method, amount, customerName, customerEmail, customerPhone, planName, returnUrl, callbackUrl } = body;
 
-    if (!method || !amount || !customerName || !customerEmail) {
-      return NextResponse.json({ success: false, error: "Missing required fields: method, amount, customerName, customerEmail" });
+    if (!method || !amount || !customerName || !customerEmail || !customerPhone) {
+      return NextResponse.json({ success: false, error: "Missing required fields: method, amount, customerName, customerEmail, customerPhone" });
     }
 
     const merchantRef = `VIP-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
@@ -125,7 +125,7 @@ async function handleCreate(request: NextRequest) {
       amount: parseInt(amount),
       customer_name: customerName,
       customer_email: customerEmail,
-      customer_phone: customerPhone || "",
+      customer_phone: customerPhone,
       order_items: [
         {
           sku: planName?.replace(/\s+/g, "-").toUpperCase() || "VIP",
