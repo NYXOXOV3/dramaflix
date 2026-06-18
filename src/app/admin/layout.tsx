@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Film, Users, Crown, Building2, Settings,
-  LogOut, Menu, X, Bell, Search, BarChart3, Loader2, Shield, Globe
+  LogOut, Menu, X, Bell, Search, BarChart3, Loader2, Shield, Globe, Key, Download
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AdminAuthProvider, useAdminAuth } from "@/lib/admin-auth";
@@ -13,10 +13,12 @@ import { AdminAuthProvider, useAdminAuth } from "@/lib/admin-auth";
 const navItems = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Movies", href: "/admin/movies", icon: Film },
+  { label: "Import TMDB", href: "/admin/import-tmdb", icon: Download },
   { label: "Users", href: "/admin/users", icon: Users },
   { label: "Subscriptions", href: "/admin/subscriptions", icon: Crown },
   { label: "Providers", href: "/admin/providers", icon: Building2 },
   { label: "Countries", href: "/admin/countries", icon: Globe },
+  { label: "TMDB Settings", href: "/admin/tmdb-settings", icon: Key },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];

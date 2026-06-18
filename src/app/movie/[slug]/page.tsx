@@ -42,7 +42,8 @@ export default function MovieDetailPage() {
     if (movie?.tmdbId) {
       setTmdbLoading(true);
       const type = movie.category === "tvshow" ? "tv" : "movie";
-      fetch(`/api/tmdb?id=${movie.tmdbId}&type=${type}`)
+      const apiKey = typeof window !== "undefined" ? localStorage.getItem("dramaflix_tmdb_api_key") || "" : "";
+      fetch(`/api/tmdb?id=${movie.tmdbId}&type=${type}&key=${encodeURIComponent(apiKey)}`)
         .then((r) => r.json())
         .then((res) => {
           if (res.success) setTmdb(res.data);
