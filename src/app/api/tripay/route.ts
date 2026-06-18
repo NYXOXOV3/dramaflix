@@ -125,31 +125,37 @@ async function handleCreate(request: NextRequest) {
       .update(signatureString)
       .digest("hex");
 
-    // Build payload as form-encoded (TriPay examples use form data)
-    const formData = new URLSearchParams();
-    formData.append("method", method);
-    formData.append("merchant_ref", merchantRef);
-    formData.append("amount", String(amountInt));
-    formData.append("customer_name", customerName);
-    formData.append("customer_email", customerEmail);
-    formData.append("customer_phone", customerPhone);
-    formData.append("order_items[0][sku]", planName?.replace(/\s+/g, "-").toUpperCase() || "VIP");
-    formData.append("order_items[0][name]", planName || "VIP Subscription");
-    formData.append("order_items[0][price]", String(amountInt));
-    formData.append("order_items[0][quantity]", "1");
-    formData.append("expired_time", String(expiry));
-    formData.append("signature", signature);
+    // Build JSON payload
+    const payload: Record<string, unknown> = {
+      method,
+      merchant_ref: merchantRef,
+      amount: amountInt,
+      customer_name: customerName,
+      customer_email: customerEmail,
+      customer_phone: customerPhone,
+      order_items: [
+        {
+          sku: planName?.replace(/\s+/g, "-").toUpperCase() || "VIP",
+          name: planName || "VIP Subscription",
+          price: amountInt,
+          quantity: 1,
+        },
+      ],
+      expired_time: expiry,
+      signature,
+    };
 
     // Only add optional fields if they have values
-    if (callbackUrl) formData.append("callback_url", callbackUrl);
-    if (returnUrl) formData.append("return_url", returnUrl);
+    if (callbackUrl) payload.callback_url = callbackUrl;
+    if (returnUrl) payload.return_url = returnUrl;
 
     const res = await fetch(`${baseUrl}/transaction/create`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
       },
-      body: formData.toString(),
+      body: JSON.stringify(payload),
     });
 
     const data = await res.json();
