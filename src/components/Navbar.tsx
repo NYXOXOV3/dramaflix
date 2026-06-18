@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, Menu, X, Crown, ChevronDown, Globe } from "lucide-react";
+import { Search, Menu, X, Crown, ChevronDown, Globe, User, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useData } from "@/lib/data-store";
+
+const USER_SESSION_KEY = "dramaflix_user_session";
 
 export default function Navbar() {
   const router = useRouter();
@@ -15,6 +17,47 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isProviderOpen, setIsProviderOpen] = useState(false);
   const [lang, setLang] = useState<"en" | "id">("en");
+  const [user, setUser] = useState<{ email: string; name: string } | null>(null);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+
+  // Check user session on mount and on storage changes
+  useEffect(() => {
+    const checkSession = () => {
+      try {
+        const stored = localStorage.getItem(USER_SESSION_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed?.email) {
+            setUser(parsed);
+          } else {
+            setUser(null);
+          }
+        } else {
+          setUser(null);
+        }
+      } catch {
+        setUser(null);
+      }
+    };
+    checkSession();
+    // Re-check on various triggers
+    window.addEventListener("focus", checkSession);
+    window.addEventListener("storage", checkSession);
+    window.addEventListener("dramaflix:auth-changed", checkSession);
+    return () => {
+      window.removeEventListener("focus", checkSession);
+      window.removeEventListener("storage", checkSession);
+      window.removeEventListener("dramaflix:auth-changed", checkSession);
+    };
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem(USER_SESSION_KEY);
+    setUser(null);
+    setIsUserMenuOpen(false);
+    setIsMenuOpen(false);
+    router.push("/");
+  };
 
   const handleSearch = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -161,18 +204,52 @@ export default function Navbar() {
             </Link>
 
             {/* Auth */}
-            <Link
-              href="/login"
-              className="hidden md:inline-flex px-3 py-2 text-sm font-medium text-dark-200 hover:text-white hover:bg-dark-800 rounded-lg transition-all"
-            >
-              {t.signIn}
-            </Link>
-            <Link
-              href="/register"
-              className="hidden md:inline-flex px-4 py-2 text-sm font-bold bg-dark-700 hover:bg-dark-600 text-white rounded-lg transition-all"
-            >
-              {t.register}
-            </Link>
+            {user ? (
+              <div className="relative hidden md:block">
+                <button
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-dark-200 hover:text-white hover:bg-dark-800 rounded-lg transition-all"
+                >
+                  <div className="w-7 h-7 bg-accent/20 rounded-full flex items-center justify-center">
+                    <User size={14} className="text-accent" />
+                  </div>
+                  <span className="max-w-[100px] truncate">{user.name}</span>
+                  <ChevronDown size={14} />
+                </button>
+                {isUserMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)} />
+                    <div className="absolute right-0 top-full mt-1 w-48 bg-dark-800 border border-dark-700 rounded-xl shadow-2xl p-2 z-50 animate-fade-in">
+                      <div className="px-3 py-2 border-b border-dark-700 mb-1">
+                        <p className="text-xs font-medium text-white truncate">{user.name}</p>
+                        <p className="text-[11px] text-dark-400 truncate">{user.email}</p>
+                      </div>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-danger hover:bg-danger/10 rounded-lg transition-all"
+                      >
+                        <LogOut size={14} /> Sign Out
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="hidden md:inline-flex px-3 py-2 text-sm font-medium text-dark-200 hover:text-white hover:bg-dark-800 rounded-lg transition-all"
+                >
+                  {t.signIn}
+                </Link>
+                <Link
+                  href="/register"
+                  className="hidden md:inline-flex px-4 py-2 text-sm font-bold bg-dark-700 hover:bg-dark-600 text-white rounded-lg transition-all"
+                >
+                  {t.register}
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -217,12 +294,34 @@ export default function Navbar() {
               </div>
 
               <div className="pt-4 mt-4 border-t border-dark-800 space-y-1">
-                <Link href="/login" onClick={() => setIsMenuOpen(false)} className="block px-4 py-3 text-dark-300 hover:bg-dark-800 hover:text-white rounded-xl transition-all font-medium">
-                  {t.signIn}
-                </Link>
-                <Link href="/register" onClick={() => setIsMenuOpen(false)} className="block px-4 py-3 bg-accent hover:bg-accent-dark text-dark-950 rounded-xl transition-all font-bold text-center">
-                  {t.register}
-                </Link>
+                {user ? (
+                  <>
+                    <div className="flex items-center gap-3 px-4 py-3">
+                      <div className="w-9 h-9 bg-accent/20 rounded-full flex items-center justify-center shrink-0">
+                        <User size={16} className="text-accent" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-white truncate">{user.name}</p>
+                        <p className="text-[11px] text-dark-400 truncate">{user.email}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-danger hover:bg-danger/10 rounded-xl transition-all font-medium"
+                    >
+                      <LogOut size={16} /> Sign Out
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/login" onClick={() => setIsMenuOpen(false)} className="block px-4 py-3 text-dark-300 hover:bg-dark-800 hover:text-white rounded-xl transition-all font-medium">
+                      {t.signIn}
+                    </Link>
+                    <Link href="/register" onClick={() => setIsMenuOpen(false)} className="block px-4 py-3 bg-accent hover:bg-accent-dark text-dark-950 rounded-xl transition-all font-bold text-center">
+                      {t.register}
+                    </Link>
+                  </>
+                )}
               </div>
             </nav>
           </aside>

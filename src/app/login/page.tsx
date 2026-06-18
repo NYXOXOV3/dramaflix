@@ -59,11 +59,13 @@ export default function LoginPage() {
         // Login success
         const session = { email: existing.email, name: existing.name, loggedInAt: new Date().toISOString() };
         localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(session));
+        window.dispatchEvent(new Event("dramaflix:auth-changed"));
         router.push("/");
       } else {
         // Demo mode: auto-login with any credentials
         const session = { email, name: email.split("@")[0], loggedInAt: new Date().toISOString() };
         localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(session));
+        window.dispatchEvent(new Event("dramaflix:auth-changed"));
         // Also register the user for future logins
         const updatedUsers = [...users, { email, password, name: email.split("@")[0] }];
         localStorage.setItem("dramaflix_users", JSON.stringify(updatedUsers));

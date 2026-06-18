@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
+
+const USER_SESSION_KEY = "dramaflix_user_session";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -14,6 +16,19 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Redirect if already logged in
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(USER_SESSION_KEY);
+      if (stored) {
+        const user = JSON.parse(stored);
+        if (user?.email) {
+          router.replace("/");
+        }
+      }
+    } catch { /* ignore */ }
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,6 +68,7 @@ export default function RegisterPage() {
       // Auto-login after registration
       const session = { email, name, loggedInAt: new Date().toISOString() };
       localStorage.setItem("dramaflix_user_session", JSON.stringify(session));
+      window.dispatchEvent(new Event("dramaflix:auth-changed"));
 
       router.push("/");
     } catch {
