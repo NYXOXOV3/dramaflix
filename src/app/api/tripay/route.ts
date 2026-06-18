@@ -112,17 +112,22 @@ async function handleCreate(request: NextRequest) {
 
     const merchantRef = `VIP-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
     const expiry = Math.floor(Date.now() / 1000) + 24 * 60 * 60; // 24 hours
+    const amountInt = Math.round(Number(amount)); // Ensure integer for signature
+
+    if (isNaN(amountInt) || amountInt < 1000) {
+      return NextResponse.json({ success: false, error: `Invalid amount: ${amount}. Must be at least 1000.` });
+    }
 
     // Create signature: HMAC-SHA256(merchantCode + merchantRef + amount, privateKey)
     const signature = crypto
       .createHmac("sha256", privateKey)
-      .update(merchantCode + merchantRef + amount)
+      .update(merchantCode + merchantRef + amountInt)
       .digest("hex");
 
     const payload = {
       method,
       merchant_ref: merchantRef,
-      amount: parseInt(amount),
+      amount: amountInt,
       customer_name: customerName,
       customer_email: customerEmail,
       customer_phone: customerPhone,
@@ -130,7 +135,7 @@ async function handleCreate(request: NextRequest) {
         {
           sku: planName?.replace(/\s+/g, "-").toUpperCase() || "VIP",
           name: planName || "VIP Subscription",
-          price: parseInt(amount),
+          price: amountInt,
           quantity: 1,
         },
       ],
