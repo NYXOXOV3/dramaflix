@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useSyncExternalStore } from "react";
-import type { Movie, Episode, Provider } from "@/lib/types";
+import type { Movie, Episode, Provider, Country } from "@/lib/types";
 import {
   movies as seedMovies,
   providers as seedProviders,
@@ -15,11 +15,24 @@ import {
 const MOVIES_KEY = "dramaflix_movies";
 const PROVIDERS_KEY = "dramaflix_providers";
 const EPISODES_KEY = "dramaflix_episodes";
+const COUNTRIES_KEY = "dramaflix_countries";
 const INIT_FLAG_KEY = "dramaflix_store_init";
 const CHANGE_EVENT = "dramaflix:data-changed";
 
+// Default countries seed
+const seedCountries: Country[] = [
+  { id: "c1", name: "China", code: "CN", flag: "🇨🇳" },
+  { id: "c2", name: "Korea", code: "KR", flag: "🇰🇷" },
+  { id: "c3", name: "Japan", code: "JP", flag: "🇯🇵" },
+  { id: "c4", name: "Thailand", code: "TH", flag: "🇹🇭" },
+  { id: "c5", name: "United States", code: "US", flag: "🇺🇸" },
+  { id: "c6", name: "United Kingdom", code: "GB", flag: "🇬🇧" },
+  { id: "c7", name: "Indonesia", code: "ID", flag: "🇮🇩" },
+];
+
 let _movies: Movie[] = [];
 let _providers: Provider[] = [];
+let _countries: Country[] = [];
 let _episodesMap: Record<string, Episode[]> = {};
 let _initialized = false;
 let _version = 0;
@@ -52,11 +65,13 @@ function initStore() {
     // Returning user - trust localStorage EXACTLY as-is (even if empty)
     _movies = loadLS<Movie[]>(MOVIES_KEY) ?? [];
     _providers = loadLS<Provider[]>(PROVIDERS_KEY) ?? [];
+    _countries = loadLS<Country[]>(COUNTRIES_KEY) ?? [];
     _episodesMap = loadLS<Record<string, Episode[]>>(EPISODES_KEY) ?? {};
   } else {
     // First-ever visit - seed with defaults
     _movies = [...seedMovies];
     _providers = [...seedProviders];
+    _countries = [...seedCountries];
     _episodesMap = {};
     saveLS(INIT_FLAG_KEY, true);
   }
@@ -64,6 +79,7 @@ function initStore() {
   // Persist current state
   saveLS(MOVIES_KEY, _movies);
   saveLS(PROVIDERS_KEY, _providers);
+  saveLS(COUNTRIES_KEY, _countries);
   saveLS(EPISODES_KEY, _episodesMap);
 }
 
@@ -106,6 +122,25 @@ function updateProvider(id: string, data: Partial<Provider>) {
 function deleteProvider(id: string) {
   _providers = _providers.filter((p) => p.id !== id);
   saveLS(PROVIDERS_KEY, _providers);
+  notify();
+}
+
+// ---- Country CRUD ----
+function addCountry(country: Country) {
+  _countries = [..._countries, country];
+  saveLS(COUNTRIES_KEY, _countries);
+  notify();
+}
+
+function updateCountry(id: string, data: Partial<Country>) {
+  _countries = _countries.map((c) => c.id === id ? { ...c, ...data } : c);
+  saveLS(COUNTRIES_KEY, _countries);
+  notify();
+}
+
+function deleteCountry(id: string) {
+  _countries = _countries.filter((c) => c.id !== id);
+  saveLS(COUNTRIES_KEY, _countries);
   notify();
 }
 
@@ -182,6 +217,7 @@ export function useData() {
   return {
     get movies() { return _movies; },
     get providers() { return _providers; },
+    get countries() { return _countries; },
 
     addMovie,
     updateMovie,
@@ -190,6 +226,10 @@ export function useData() {
     addProvider,
     updateProvider,
     deleteProvider,
+
+    addCountry,
+    updateCountry,
+    deleteCountry,
 
     getEpisodes,
     setEpisodes,

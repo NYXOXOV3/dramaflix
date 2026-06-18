@@ -17,6 +17,7 @@ interface MovieFormData {
   rating: number; totalEpisodes: number; freeEpisodes: number; year: number;
   category: "drama" | "movie" | "anime" | "donghua" | "tvshow"; isVipOnly: boolean;
   coverImage: string; bannerImage: string; videoUrl: string;
+  tmdbId: string;
 }
 
 interface EpisodeFormData {
@@ -29,7 +30,7 @@ const emptyForm: MovieFormData = {
   title: "", slug: "", synopsis: "", country: "China",
   status: "Ongoing", genre: "", provider: "", rating: 4.0,
   totalEpisodes: 10, freeEpisodes: 3, year: 2025, category: "drama" as const, isVipOnly: false,
-  coverImage: "", bannerImage: "", videoUrl: "",
+  coverImage: "", bannerImage: "", videoUrl: "", tmdbId: "",
 };
 
 // ============ POSTER UPLOAD HELPER ============
@@ -83,7 +84,7 @@ function MovieFormModal({ isOpen, onClose, onSubmit, initial, title }: {
   isOpen: boolean; onClose: () => void; onSubmit: (data: MovieFormData) => void;
   initial: MovieFormData; title: string;
 }) {
-  const { providers: storeProviders } = useData();
+  const { providers: storeProviders, countries: storeCountries } = useData();
   const [form, setForm] = useState<MovieFormData>(initial);
   const [errors, setErrors] = useState<string[]>([]);
 
@@ -153,6 +154,13 @@ function MovieFormModal({ isOpen, onClose, onSubmit, initial, title }: {
                   placeholder="https://example.com/video.mp4 or embed URL" />
                 <p className="text-[11px] text-dark-500 mt-1">Direct .mp4 URL or embeddable video URL. Individual episodes can override this.</p>
               </div>
+              <div>
+                <label className="block text-xs font-medium text-dark-300 mb-1.5">TMDB ID <span className="text-dark-500">(optional - for metadata enrichment)</span></label>
+                <input type="text" value={form.tmdbId} onChange={(e) => setForm({ ...form, tmdbId: e.target.value })}
+                  className="w-full bg-dark-800 border border-dark-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-accent"
+                  placeholder="e.g. 550 (Fight Club) or 1396 (Breaking Bad)" />
+                <p className="text-[11px] text-dark-500 mt-1">Find IDs at <span className="text-primary">themoviedb.org</span>. Movies use movie IDs, TV Shows use TV IDs.</p>
+              </div>
             </div>
           </div>
 
@@ -164,7 +172,8 @@ function MovieFormModal({ isOpen, onClose, onSubmit, initial, title }: {
                 <label className="block text-xs font-medium text-dark-300 mb-1.5">Country</label>
                 <select value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })}
                   className="w-full bg-dark-800 border border-dark-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-accent">
-                  <option>China</option><option>Korea</option><option>Japan</option><option>Thailand</option>
+                  <option value="">Select country</option>
+                  {storeCountries.map((c: { name: string; flag?: string }) => <option key={c.name} value={c.name}>{c.flag ? c.flag + " " : ""}{c.name}</option>)}
                 </select>
               </div>
               <div>
@@ -508,6 +517,7 @@ export default function AdminMoviesPage() {
       coverImage: data.coverImage || `https://picsum.photos/seed/${data.slug || Date.now()}/300/450`,
       bannerImage: data.bannerImage || undefined,
       videoUrl: data.videoUrl || undefined,
+      tmdbId: data.tmdbId ? parseInt(data.tmdbId) : undefined,
       country: data.country, status: data.status,
       genre: data.genre.split(",").map((g: string) => g.trim()).filter(Boolean),
       provider: data.category === "drama" ? (data.provider || "None") : "None",
@@ -529,6 +539,7 @@ export default function AdminMoviesPage() {
       coverImage: data.coverImage || editTarget.coverImage,
       bannerImage: data.bannerImage || editTarget.bannerImage,
       videoUrl: data.videoUrl || editTarget.videoUrl,
+      tmdbId: data.tmdbId ? parseInt(data.tmdbId) : editTarget.tmdbId,
       country: data.country, status: data.status,
       genre: data.genre.split(",").map((g: string) => g.trim()).filter(Boolean),
       provider: data.provider || editTarget.provider,
@@ -554,6 +565,7 @@ export default function AdminMoviesPage() {
     rating: m.rating, totalEpisodes: m.totalEpisodes, freeEpisodes: m.freeEpisodes,
     year: m.year, category: m.category, isVipOnly: m.isVipOnly,
     coverImage: m.coverImage, bannerImage: m.bannerImage || "", videoUrl: m.videoUrl || "",
+    tmdbId: m.tmdbId ? String(m.tmdbId) : "",
   });
 
   return (

@@ -7,6 +7,7 @@ export interface Movie {
   coverImage: string;
   bannerImage?: string;
   videoUrl?: string;
+  tmdbId?: number;
   country: string;
   status: "Ongoing" | "Completed";
   genre: string[];
@@ -89,4 +90,11 @@ export interface SearchResult {
   movies: Movie[];
   total: number;
   query: string;
+}
+
+export interface Country {
+  id: string;
+  name: string;
+  code: string;
+  flag?: string;
 }
