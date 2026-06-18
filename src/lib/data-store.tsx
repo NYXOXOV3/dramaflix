@@ -173,8 +173,26 @@ function getMoviesByProvider(slug: string) { return _movies.filter((m) => m.prov
 function getTrendingMovies() { return _movies.filter((m) => m.isTrending); }
 function getNewMovies() { return _movies.filter((m) => m.isNew); }
 function getRankings(period: "daily" | "weekly" | "monthly" | "yearly") {
-  const mult = period === "daily" ? 1 : period === "weekly" ? 3 : period === "monthly" ? 7 : 30;
-  return [..._movies].sort((a, b) => (b.views * mult * (b.rating / 5)) - (a.views * mult * (a.rating / 5))).slice(0, 10);
+  // Sort purely by total views (most viewed first)
+  return [..._movies].sort((a, b) => b.views - a.views).slice(0, 10);
+}
+
+// ---- Picks For You (top rated + most viewed combined score) ----
+function getPicksForYou(limit = 12) {
+  return [..._movies]
+    .map((m) => ({
+      movie: m,
+      // Combined score: 60% rating weight + 40% views weight (normalized)
+      score: (m.rating / 5) * 0.6 + (m.views / Math.max(..._movies.map((x) => x.views), 1)) * 0.4,
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((x) => x.movie);
+}
+
+// ---- Most Viewed ----
+function getMostViewed(limit = 6) {
+  return [..._movies].sort((a, b) => b.views - a.views).slice(0, limit);
 }
 
 // ---- View counting ----
@@ -287,6 +305,8 @@ export function useData() {
     getTrendingMovies,
     getNewMovies,
     getRankings,
+    getPicksForYou,
+    getMostViewed,
 
     incrementView,
     rateMovie,

@@ -8,14 +8,15 @@ import RankingSection from "@/components/RankingSection";
 import HeroSection from "@/components/HeroSection";
 
 export default function HomePage() {
-  const { movies, getTrendingMovies, getNewMovies, getMoviesByCategory } = useData();
-  const trending = getTrendingMovies();
+  const { movies, getPicksForYou, getMostViewed, getNewMovies, getMoviesByCategory } = useData();
+  const picks = getPicksForYou();
+  const popular = getMostViewed(6);
   const newMovies = getNewMovies();
   const animeList = getMoviesByCategory("anime");
   const donghuaList = getMoviesByCategory("donghua");
   const movieList = getMoviesByCategory("movie");
   const tvShowList = getMoviesByCategory("tvshow");
-  const heroMovie = trending[0] || movies[0];
+  const heroMovie = picks[0] || movies[0];
 
   const promoExpiry = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
 
@@ -33,7 +34,7 @@ export default function HomePage() {
         />
 
         <Carousel title="Picks For You" seeMoreHref="/?sort=popular">
-          {trending.map((m) => (
+          {picks.map((m) => (
             <div key={m.id} className="w-[140px] sm:w-[160px] md:w-[180px] shrink-0">
               <MovieCard movie={m} />
             </div>
@@ -41,9 +42,9 @@ export default function HomePage() {
         </Carousel>
 
         <section>
-          <h2 className="text-lg font-extrabold text-white mb-4 px-4 lg:px-0">Popular Today</h2>
+          <h2 className="text-lg font-extrabold text-white mb-4 px-4 lg:px-0">Most Viewed</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 px-4 lg:px-0">
-            {movies.slice(0, 6).map((m) => (
+            {popular.map((m) => (
               <MovieCard key={m.id} movie={m} />
             ))}
           </div>
