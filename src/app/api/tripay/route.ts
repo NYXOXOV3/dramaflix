@@ -87,13 +87,23 @@ async function handleChannels(request: NextRequest) {
 
 // ---- CREATE TRANSACTION ----
 async function handleCreate(request: NextRequest) {
-  const config = getConfig(request);
-  if (!config.apiKey || !config.privateKey || !config.merchantCode) {
-    return NextResponse.json({ success: false, error: "TriPay credentials not fully configured" });
-  }
-
   try {
     const body = await request.json();
+
+    // Read credentials from body first (sent by VIP page), then fall back to env vars
+    const apiKey = body.apiKey || process.env.TRIPAY_API_KEY || "";
+    const privateKey = body.privateKey || process.env.TRIPAY_PRIVATE_KEY || "";
+    const merchantCode = body.merchantCode || process.env.TRIPAY_MERCHANT_CODE || "";
+    const mode = (body.mode || process.env.TRIPAY_MODE || "sandbox") as "sandbox" | "production";
+    const baseUrl = TRIPAY_BASE[mode] || TRIPAY_BASE.sandbox;
+
+    if (!apiKey || !privateKey || !merchantCode) {
+      return NextResponse.json({
+        success: false,
+        error: `TriPay credentials not fully configured. Missing: ${!apiKey ? "API Key " : ""}${!privateKey ? "Private Key " : ""}${!merchantCode ? "Merchant Code" : ""}`.trim()
+      });
+    }
+
     const { method, amount, customerName, customerEmail, customerPhone, planName, returnUrl, callbackUrl } = body;
 
     if (!method || !amount || !customerName || !customerEmail) {
@@ -105,8 +115,8 @@ async function handleCreate(request: NextRequest) {
 
     // Create signature: HMAC-SHA256(merchantCode + merchantRef + amount, privateKey)
     const signature = crypto
-      .createHmac("sha256", config.privateKey)
-      .update(config.merchantCode + merchantRef + amount)
+      .createHmac("sha256", privateKey)
+      .update(merchantCode + merchantRef + amount)
       .digest("hex");
 
     const payload = {
@@ -130,10 +140,10 @@ async function handleCreate(request: NextRequest) {
       signature,
     };
 
-    const res = await fetch(`${config.baseUrl}/transaction/create`, {
+    const res = await fetch(`${baseUrl}/transaction/create`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${config.apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
