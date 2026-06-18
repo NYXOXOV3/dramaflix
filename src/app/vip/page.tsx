@@ -1,12 +1,20 @@
-import { Crown, Check, Zap, Shield, Film, Monitor, Headphones, Clock } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import { Crown, Check, Zap, Shield, Film, Monitor, Headphones, Clock, X } from "lucide-react";
 import { vipPlans } from "@/lib/mock-data";
 
-export const metadata = {
-  title: "VIP Membership",
-  description: "Upgrade to VIP for unlimited access to all dramas and movies in HD quality.",
-};
-
 export default function VipPage() {
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [showCheckout, setShowCheckout] = useState(false);
+
+  const handleGetPlan = (planId: string, planName: string) => {
+    setSelectedPlan(planId);
+    setShowCheckout(true);
+  };
+
+  const selectedPlanData = vipPlans.find((p) => p.id === selectedPlan);
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
       {/* Header */}
@@ -74,6 +82,7 @@ export default function VipPage() {
             </ul>
 
             <button
+              onClick={() => handleGetPlan(plan.id, plan.name)}
               className={`w-full py-3 rounded-xl font-bold text-sm transition-all ${
                 plan.isPopular
                   ? "bg-accent hover:bg-accent-dark text-dark-950 shadow-lg shadow-accent/20"
@@ -129,6 +138,68 @@ export default function VipPage() {
           ))}
         </div>
       </div>
+
+      {/* Checkout Modal */}
+      {showCheckout && selectedPlanData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowCheckout(false)} />
+          <div className="relative bg-dark-900 border border-dark-700 rounded-2xl p-6 max-w-md w-full animate-fade-in">
+            <button onClick={() => setShowCheckout(false)} className="absolute top-4 right-4 p-1 hover:bg-dark-800 rounded-lg text-dark-400">
+              <X size={20} />
+            </button>
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-accent/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Crown size={28} className="text-accent" />
+              </div>
+              <h3 className="text-xl font-bold text-white">Checkout</h3>
+              <p className="text-sm text-dark-400 mt-1">Complete your VIP purchase</p>
+            </div>
+
+            <div className="p-4 bg-dark-800 rounded-xl mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-dark-300">Plan</span>
+                <span className="text-sm font-bold text-white">{selectedPlanData.name}</span>
+              </div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-dark-300">Duration</span>
+                <span className="text-sm text-dark-300">
+                  {selectedPlanData.durationUnit === "lifetime" ? "Lifetime" : `${selectedPlanData.duration} ${selectedPlanData.durationUnit}`}
+                </span>
+              </div>
+              <div className="border-t border-dark-700 pt-2 mt-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold text-white">Total</span>
+                  <span className="text-lg font-extrabold text-accent">Rp {selectedPlanData.price.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3 mb-6">
+              <p className="text-xs font-semibold text-dark-300 uppercase tracking-wider">Payment Method</p>
+              <div className="grid grid-cols-3 gap-2">
+                {["QRIS", "GoPay", "Bank"].map((method) => (
+                  <button
+                    key={method}
+                    className="p-3 bg-dark-800 hover:bg-dark-700 border border-dark-700 hover:border-accent/30 rounded-xl text-xs font-medium text-dark-300 hover:text-white transition-all text-center"
+                  >
+                    {method}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                setShowCheckout(false);
+                alert("Payment integration coming soon! This is a demo checkout.");
+              }}
+              className="w-full py-3 bg-accent hover:bg-accent-dark text-dark-950 font-bold rounded-xl transition-all"
+            >
+              Pay Rp {selectedPlanData.price.toLocaleString()}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

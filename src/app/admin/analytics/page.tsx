@@ -1,24 +1,25 @@
 "use client";
 
-import { movies, providers, vipPlans } from "@/lib/mock-data";
+import { useData } from "@/lib/data-store";
 import { TrendingUp, Eye, Film, Users, Crown, BarChart3, Globe, Activity } from "lucide-react";
 
 export default function AdminAnalyticsPage() {
-  const totalViews = movies.reduce((sum, m) => sum + m.views, 0);
-  const avgRating = movies.length > 0 ? (movies.reduce((sum, m) => sum + m.rating, 0) / movies.length).toFixed(1) : "0";
-  const topMovies = [...movies].sort((a, b) => b.views - a.views).slice(0, 5);
-  const topProviders = [...providers].filter(p => !p.isComingSoon).sort((a, b) => b.totalMovies - a.totalMovies).slice(0, 5);
-  const categoryStats = ["drama", "movie", "anime", "donghua"].map(cat => ({
+  const { movies, providers } = useData();
+  const totalViews = movies.reduce((sum: number, m: { views: number }) => sum + m.views, 0);
+  const avgRating = movies.length > 0 ? (movies.reduce((sum: number, m: { rating: number }) => sum + m.rating, 0) / movies.length).toFixed(1) : "0";
+  const topMovies = [...movies].sort((a: { views: number }, b: { views: number }) => b.views - a.views).slice(0, 5);
+  const topProviders = [...providers].filter((p: { isComingSoon: boolean }) => !p.isComingSoon).sort((a: { totalMovies: number }, b: { totalMovies: number }) => b.totalMovies - a.totalMovies).slice(0, 5);
+  const categoryStats = ["drama", "movie", "anime", "donghua", "tvshow"].map(cat => ({
     category: cat,
-    count: movies.filter(m => m.category === cat).length,
-    views: movies.filter(m => m.category === cat).reduce((s, m) => s + m.views, 0),
+    count: movies.filter((m: { category: string }) => m.category === cat).length,
+    views: movies.filter((m: { category: string }) => m.category === cat).reduce((s: number, m: { views: number }) => s + m.views, 0),
   }));
 
-  const countries = Array.from(new Set(movies.map(m => m.country)));
+  const countries = Array.from(new Set(movies.map((m: { country: string }) => m.country)));
   const countryStats = countries.map(c => ({
     country: c,
-    count: movies.filter(m => m.country === c).length,
-  })).sort((a, b) => b.count - a.count);
+    count: movies.filter((m: { country: string }) => m.country === c).length,
+  })).sort((a: { count: number }, b: { count: number }) => b.count - a.count);
 
   return (
     <div className="space-y-6">
@@ -33,7 +34,7 @@ export default function AdminAnalyticsPage() {
           { label: "Total Views", value: `${(totalViews / 1000).toFixed(1)}K`, icon: Eye, color: "text-accent", bg: "bg-accent/10" },
           { label: "Total Movies", value: movies.length.toString(), icon: Film, color: "text-primary", bg: "bg-primary/10" },
           { label: "Avg Rating", value: avgRating, icon: TrendingUp, color: "text-success", bg: "bg-success/10" },
-          { label: "Active Providers", value: providers.filter(p => !p.isComingSoon).length.toString(), icon: Activity, color: "text-purple", bg: "bg-purple/10" },
+          { label: "Active Providers", value: providers.filter((p: { isComingSoon: boolean }) => !p.isComingSoon).length.toString(), icon: Activity, color: "text-purple", bg: "bg-purple/10" },
         ].map(stat => (
           <div key={stat.label} className="p-5 bg-dark-900 border border-dark-800 rounded-2xl">
             <div className={`w-10 h-10 ${stat.bg} rounded-xl flex items-center justify-center mb-3`}>
@@ -52,7 +53,7 @@ export default function AdminAnalyticsPage() {
             <h2 className="text-sm font-bold text-white flex items-center gap-2"><BarChart3 size={16} className="text-accent" /> Top Movies by Views</h2>
           </div>
           <div className="divide-y divide-dark-800">
-            {topMovies.map((movie, i) => (
+            {topMovies.map((movie: { id: string; coverImage: string; title: string; provider: string; views: number }, i: number) => (
               <div key={movie.id} className="flex items-center gap-3 p-4">
                 <span className="text-lg font-extrabold w-6 text-center shrink-0" style={{ color: i < 3 ? "#f59e0b" : "#64748b" }}>{i + 1}</span>
                 <div className="w-8 h-12 rounded-lg overflow-hidden bg-dark-800 shrink-0">
@@ -110,7 +111,7 @@ export default function AdminAnalyticsPage() {
           <h2 className="text-sm font-bold text-white flex items-center gap-2"><Crown size={16} className="text-accent" /> Top Providers by Content</h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 divide-y sm:divide-y-0 sm:divide-x divide-dark-800">
-          {topProviders.map(p => (
+          {topProviders.map((p: { id: string; name: string; totalMovies: number }) => (
             <div key={p.id} className="p-4 text-center">
               <div className="w-10 h-10 bg-dark-800 rounded-xl flex items-center justify-center mx-auto mb-2">
                 <span className="text-sm font-bold text-accent">{p.name.charAt(0)}</span>

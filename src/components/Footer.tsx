@@ -36,6 +36,8 @@ export default function Footer() {
               {[
                 { label: "Latest", href: "/?sort=latest" },
                 { label: "Popular", href: "/?sort=popular" },
+                { label: "Movies", href: "/movie" },
+                { label: "TV Shows", href: "/tvshow" },
                 { label: "Free", href: "/?filter=free" },
                 { label: "VIP", href: "/vip" },
               ].map((item) => (

@@ -24,6 +24,7 @@ let _movies: Movie[] = [];
 let _providers: Provider[] = [];
 let _episodesMap: Record<string, Episode[]> = {};
 let _initialized = false;
+let _mutationCounter = 0; // Incremented on every mutation for reliable snapshots
 
 // ---- LocalStorage helpers ----
 function loadLS<T>(key: string): T | null {
@@ -39,6 +40,7 @@ function saveLS(key: string, data: unknown) {
 
 // ---- Notify all subscribers ----
 function notify() {
+  _mutationCounter++;
   window.dispatchEvent(new CustomEvent(CHANGE_EVENT));
 }
 
@@ -147,8 +149,8 @@ function subscribe(callback: () => void) {
 }
 
 function getSnapshot() {
-  // Return a version counter that changes on every mutation
-  return _movies.length + _providers.length + Object.keys(_episodesMap).length;
+  // Return a monotonically increasing counter that changes on every mutation
+  return _mutationCounter;
 }
 
 function getServerSnapshot() {

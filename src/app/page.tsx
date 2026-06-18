@@ -13,6 +13,8 @@ export default function HomePage() {
   const newMovies = getNewMovies();
   const animeList = getMoviesByCategory("anime");
   const donghuaList = getMoviesByCategory("donghua");
+  const movieList = getMoviesByCategory("movie");
+  const tvShowList = getMoviesByCategory("tvshow");
   const heroMovie = trending[0] || movies[0];
 
   const promoExpiry = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
@@ -72,6 +74,26 @@ export default function HomePage() {
         {donghuaList.length > 0 && (
           <Carousel title="Donghua" seeMoreHref="/donghua">
             {donghuaList.map((m) => (
+              <div key={m.id} className="w-[140px] sm:w-[160px] md:w-[180px] shrink-0">
+                <MovieCard movie={m} />
+              </div>
+            ))}
+          </Carousel>
+        )}
+
+        {movieList.length > 0 && (
+          <Carousel title="Movies" seeMoreHref="/movie">
+            {movieList.map((m) => (
+              <div key={m.id} className="w-[140px] sm:w-[160px] md:w-[180px] shrink-0">
+                <MovieCard movie={m} />
+              </div>
+            ))}
+          </Carousel>
+        )}
+
+        {tvShowList.length > 0 && (
+          <Carousel title="TV Shows" seeMoreHref="/tvshow">
+            {tvShowList.map((m) => (
               <div key={m.id} className="w-[140px] sm:w-[160px] md:w-[180px] shrink-0">
                 <MovieCard movie={m} />
               </div>

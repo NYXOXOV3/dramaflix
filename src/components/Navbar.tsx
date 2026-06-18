@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Search, Menu, X, Crown, ChevronDown, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useData } from "@/lib/data-store";
 
 export default function Navbar() {
+  const router = useRouter();
   const { providers } = useData();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -14,9 +16,28 @@ export default function Navbar() {
   const [isProviderOpen, setIsProviderOpen] = useState(false);
   const [lang, setLang] = useState<"en" | "id">("en");
 
+  const handleSearch = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const q = searchQuery.trim();
+    if (q) {
+      router.push(`/search?q=${encodeURIComponent(q)}`);
+      setIsSearchOpen(false);
+      setSearchQuery("");
+    }
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleSearch();
+    } else if (e.key === "Escape") {
+      setIsSearchOpen(false);
+      setSearchQuery("");
+    }
+  };
+
   const labels = {
-    en: { home: "Home", platform: "Platform", movies: "Movies", anime: "Anime", donghua: "Donghua", signIn: "Sign In", register: "Register", searchPlaceholder: "Search dramas across 40+ providers...", upgradeVip: "Upgrade VIP" },
-    id: { home: "Beranda", platform: "Platform", movies: "Film", anime: "Anime", donghua: "Donghua", signIn: "Masuk", register: "Daftar", searchPlaceholder: "Cari drama dari 40+ penyedia...", upgradeVip: "Upgrade VIP" },
+    en: { home: "Home", platform: "Platform", movies: "Movies", anime: "Anime", donghua: "Donghua", tvshows: "TV Shows", signIn: "Sign In", register: "Register", searchPlaceholder: "Search dramas across 40+ providers...", upgradeVip: "Upgrade VIP" },
+    id: { home: "Beranda", platform: "Platform", movies: "Film", anime: "Anime", donghua: "Donghua", tvshows: "Acara TV", signIn: "Masuk", register: "Daftar", searchPlaceholder: "Cari drama dari 40+ penyedia...", upgradeVip: "Upgrade VIP" },
   };
   const t = labels[lang];
 
@@ -73,8 +94,11 @@ export default function Navbar() {
                 </div>
               )}
             </div>
-            <Link href="/vip" className="px-3 py-2 text-sm font-medium text-dark-200 hover:text-white hover:bg-dark-800 rounded-lg transition-all">
+            <Link href="/movie" className="px-3 py-2 text-sm font-medium text-dark-200 hover:text-white hover:bg-dark-800 rounded-lg transition-all">
               {t.movies}
+            </Link>
+            <Link href="/tvshow" className="px-3 py-2 text-sm font-medium text-dark-200 hover:text-white hover:bg-dark-800 rounded-lg transition-all">
+              {t.tvshows}
             </Link>
             <Link href="/anime" className="px-3 py-2 text-sm font-medium text-dark-200 hover:text-white hover:bg-dark-800 rounded-lg transition-all">
               {t.anime}
@@ -89,19 +113,23 @@ export default function Navbar() {
             {/* Search */}
             <div className={cn("relative transition-all duration-300", isSearchOpen ? "w-64" : "w-auto")}>
               {isSearchOpen ? (
-                <div className="flex items-center">
+                <form onSubmit={handleSearch} className="flex items-center">
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={handleSearchKeyDown}
                     placeholder={t.searchPlaceholder}
-                    className="w-full bg-dark-800 border border-dark-600 rounded-lg px-4 py-2 text-sm text-white placeholder:text-dark-400 focus:outline-none focus:border-accent"
+                    className="w-full bg-dark-800 border border-dark-600 rounded-l-lg px-4 py-2 text-sm text-white placeholder:text-dark-400 focus:outline-none focus:border-accent"
                     autoFocus
                   />
-                  <button onClick={() => { setIsSearchOpen(false); setSearchQuery(""); }} className="ml-2 p-2 text-dark-400 hover:text-white">
+                  <button type="submit" className="p-2 bg-accent hover:bg-accent-dark text-dark-950 rounded-r-lg">
+                    <Search size={16} />
+                  </button>
+                  <button type="button" onClick={() => { setIsSearchOpen(false); setSearchQuery(""); }} className="ml-2 p-2 text-dark-400 hover:text-white">
                     <X size={18} />
                   </button>
-                </div>
+                </form>
               ) : (
                 <button
                   onClick={() => setIsSearchOpen(true)}
@@ -158,8 +186,11 @@ export default function Navbar() {
               <Link href="/" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 text-white hover:bg-dark-800 rounded-xl transition-all font-medium">
                 {t.home}
               </Link>
-              <Link href="/vip" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 text-dark-300 hover:bg-dark-800 hover:text-white rounded-xl transition-all">
-                <Crown size={18} className="text-accent" /> {t.movies}
+              <Link href="/movie" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 text-dark-300 hover:bg-dark-800 hover:text-white rounded-xl transition-all">
+                {t.movies}
+              </Link>
+              <Link href="/tvshow" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 text-dark-300 hover:bg-dark-800 hover:text-white rounded-xl transition-all">
+                {t.tvshows}
               </Link>
               <Link href="/anime" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 text-dark-300 hover:bg-dark-800 hover:text-white rounded-xl transition-all">
                 {t.anime}

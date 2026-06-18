@@ -22,11 +22,35 @@ const navItems = [
 
 function AdminShell({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [adminSearch, setAdminSearch] = useState("");
   const pathname = usePathname();
   const router = useRouter();
   const { user, isLoading, isAuthenticated, logout } = useAdminAuth();
 
   const isLoginPage = pathname === "/admin/login";
+
+  const handleAdminSearch = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const q = adminSearch.trim().toLowerCase();
+    if (!q) return;
+    // Navigate to matching admin page based on search term
+    const pageMap: Record<string, string> = {
+      movie: "/admin/movies", movies: "/admin/movies",
+      user: "/admin/users", users: "/admin/users",
+      provider: "/admin/providers", providers: "/admin/providers",
+      subscription: "/admin/subscriptions", subscriptions: "/admin/subscriptions",
+      analytics: "/admin/analytics",
+      setting: "/admin/settings", settings: "/admin/settings",
+      dashboard: "/admin",
+    };
+    const matchedPage = pageMap[q];
+    if (matchedPage) {
+      router.push(matchedPage);
+    } else {
+      router.push(`/admin/movies`);
+    }
+    setAdminSearch("");
+  };
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated && !isLoginPage) {
@@ -149,14 +173,16 @@ function AdminShell({ children }: { children: React.ReactNode }) {
             >
               <Menu size={20} />
             </button>
-            <div className="hidden sm:flex items-center bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 w-72">
+            <form onSubmit={handleAdminSearch} className="hidden sm:flex items-center bg-dark-800 border border-dark-700 rounded-lg px-3 py-2 w-72">
               <Search size={16} className="text-dark-500 mr-2 shrink-0" />
               <input
                 type="text"
+                value={adminSearch}
+                onChange={(e) => setAdminSearch(e.target.value)}
                 placeholder="Search admin..."
                 className="bg-transparent text-sm text-white placeholder:text-dark-500 focus:outline-none w-full"
               />
-            </div>
+            </form>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[11px] bg-accent/10 text-accent px-2 py-1 rounded font-medium capitalize hidden sm:block">

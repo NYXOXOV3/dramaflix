@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,9 +31,34 @@ export default function RegisterPage() {
       return;
     }
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    setIsLoading(false);
-    alert("Registration functionality requires Supabase setup.");
+
+    try {
+      await new Promise((r) => setTimeout(r, 1200));
+
+      // Check if email already exists
+      const usersRaw = localStorage.getItem("dramaflix_users");
+      const users: Array<{ email: string; password: string; name: string }> = usersRaw ? JSON.parse(usersRaw) : [];
+      const existing = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+
+      if (existing) {
+        setError("An account with this email already exists. Please sign in.");
+        setIsLoading(false);
+        return;
+      }
+
+      // Register user
+      const updatedUsers = [...users, { email, password, name }];
+      localStorage.setItem("dramaflix_users", JSON.stringify(updatedUsers));
+
+      // Auto-login after registration
+      const session = { email, name, loggedInAt: new Date().toISOString() };
+      localStorage.setItem("dramaflix_user_session", JSON.stringify(session));
+
+      router.push("/");
+    } catch {
+      setError("An unexpected error occurred. Please try again.");
+      setIsLoading(false);
+    }
   };
 
   return (

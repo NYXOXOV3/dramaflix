@@ -1,13 +1,24 @@
-import { Download, Smartphone, Monitor, CheckCircle, HelpCircle } from "lucide-react";
+"use client";
 
-export const metadata = {
-  title: "Download App",
-  description: "Download DramaFlix mobile app for Android and iOS.",
-};
+import { useState } from "react";
+import { Download, Smartphone, Monitor, CheckCircle, HelpCircle, Clock } from "lucide-react";
 
 export default function DownloadPage() {
+  const [toast, setToast] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3000);
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
+      {toast && (
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg animate-slide-up text-sm font-medium bg-accent/20 text-accent border border-accent/30">
+          <Clock size={16} />{toast}
+        </div>
+      )}
+
       <div className="text-center mb-12">
         <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-3">Download DramaFlix</h1>
         <p className="text-dark-400 max-w-lg mx-auto">
@@ -23,12 +34,12 @@ export default function DownloadPage() {
           </div>
           <h3 className="text-xl font-extrabold text-white mb-2">Android</h3>
           <p className="text-sm text-dark-400 mb-6">Download APK directly for Android devices.</p>
-          <a
-            href="#"
+          <button
+            onClick={() => showToast("Android APK download coming soon! We're working on it.")}
             className="inline-flex items-center gap-2 px-8 py-3 bg-success hover:bg-success/80 text-dark-950 font-bold rounded-xl transition-all"
           >
             <Download size={18} /> Download APK
-          </a>
+          </button>
           <p className="text-xs text-dark-500 mt-4">v2.1.0 · 15MB · Android 7.0+</p>
         </div>
 
@@ -39,9 +50,12 @@ export default function DownloadPage() {
           </div>
           <h3 className="text-xl font-extrabold text-white mb-2">iOS (iPhone/iPad)</h3>
           <p className="text-sm text-dark-400 mb-6">Install via Safari as Progressive Web App.</p>
-          <div className="inline-flex items-center gap-2 px-8 py-3 bg-dark-700 text-white font-bold rounded-xl">
+          <button
+            onClick={() => showToast("PWA install guide coming soon!")}
+            className="inline-flex items-center gap-2 px-8 py-3 bg-dark-700 hover:bg-dark-600 text-white font-bold rounded-xl transition-all"
+          >
             PWA Install Guide
-          </div>
+          </button>
           <p className="text-xs text-dark-500 mt-4">Works on iOS 14+ via Safari</p>
         </div>
       </div>

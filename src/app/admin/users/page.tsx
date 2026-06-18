@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Shield, Crown, Ban, Mail, X, Check, AlertCircle, UserCheck, UserX, Save } from "lucide-react";
+import { Search, Shield, Crown, Ban, Trash2, X, Check, AlertCircle, UserCheck, UserX, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface MockUser {
@@ -149,7 +149,7 @@ export default function AdminUsersPage() {
                         <Ban size={15} />
                       </button>
                       <button onClick={() => handleDelete(user)} className="p-1.5 hover:bg-dark-700 rounded-lg text-dark-400 hover:text-danger transition-colors" title="Delete user">
-                        <Mail size={15} />
+                        <Trash2 size={15} />
                       </button>
                     </div>
                   </td>

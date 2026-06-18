@@ -69,12 +69,15 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Revenue Chart (Mock) */}
+        {/* Revenue Chart (Deterministic) */}
         <div className="bg-dark-900 border border-dark-800 rounded-2xl p-4">
           <h2 className="text-sm font-bold text-white mb-4">Revenue Overview</h2>
           <div className="space-y-4">
-            {vipPlans.map((plan) => {
-              const mockRevenue = plan.price * Math.floor(Math.random() * 50 + 10);
+            {vipPlans.map((plan, idx) => {
+              // Deterministic revenue based on plan price and a fixed multiplier per plan
+              const multipliers = [32, 45, 28, 18];
+              const subscriberCount = multipliers[idx % multipliers.length];
+              const mockRevenue = plan.price * subscriberCount;
               return (
                 <div key={plan.id} className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
@@ -94,7 +97,20 @@ export default function AdminDashboard() {
           <div className="mt-6 pt-4 border-t border-dark-800">
             <div className="flex items-center justify-between">
               <span className="text-xs text-dark-400">Total Revenue</span>
-              <span className="text-lg font-extrabold text-accent">Rp 12.4M</span>
+              <span className="text-lg font-extrabold text-accent">
+                Rp {vipPlans.reduce((sum, plan, idx) => {
+                  const multipliers = [32, 45, 28, 18];
+                  return sum + plan.price * multipliers[idx % multipliers.length];
+                }, 0) >= 1_000_000
+                  ? `${(vipPlans.reduce((sum, plan, idx) => {
+                      const multipliers = [32, 45, 28, 18];
+                      return sum + plan.price * multipliers[idx % multipliers.length];
+                    }, 0) / 1_000_000).toFixed(1)}M`
+                  : `${(vipPlans.reduce((sum, plan, idx) => {
+                      const multipliers = [32, 45, 28, 18];
+                      return sum + plan.price * multipliers[idx % multipliers.length];
+                    }, 0) / 1_000).toFixed(0)}K`}
+              </span>
             </div>
             <p className="text-[11px] text-success mt-1 flex items-center gap-1">
               <TrendingUp size={12} /> +18% from last month

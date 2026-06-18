@@ -20,7 +20,7 @@ export interface Movie {
   isVipOnly: boolean;
   isTrending: boolean;
   isNew: boolean;
-  category: "drama" | "movie" | "anime" | "donghua";
+  category: "drama" | "movie" | "anime" | "donghua" | "tvshow";
   createdAt: string;
   updatedAt: string;
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { getRankings } from "@/lib/mock-data";
+import { useData } from "@/lib/data-store";
 import MovieCard from "@/components/MovieCard";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +13,7 @@ const periods = [
 ];
 
 export default function RankingSection() {
+  const { getRankings } = useData();
   const [activePeriod, setActivePeriod] = useState<"daily" | "weekly" | "monthly" | "yearly">("daily");
   const rankings = getRankings(activePeriod);
 

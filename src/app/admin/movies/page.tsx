@@ -15,7 +15,7 @@ interface MovieFormData {
   title: string; slug: string; synopsis: string; country: string;
   status: "Ongoing" | "Completed"; genre: string; provider: string;
   rating: number; totalEpisodes: number; freeEpisodes: number; year: number;
-  category: Movie["category"]; isVipOnly: boolean;
+  category: "drama" | "movie" | "anime" | "donghua" | "tvshow"; isVipOnly: boolean;
   coverImage: string; bannerImage: string; videoUrl: string;
 }
 
@@ -28,7 +28,7 @@ interface EpisodeFormData {
 const emptyForm: MovieFormData = {
   title: "", slug: "", synopsis: "", country: "China",
   status: "Ongoing", genre: "", provider: "", rating: 4.0,
-  totalEpisodes: 10, freeEpisodes: 3, year: 2025, category: "drama", isVipOnly: false,
+  totalEpisodes: 10, freeEpisodes: 3, year: 2025, category: "drama" as const, isVipOnly: false,
   coverImage: "", bannerImage: "", videoUrl: "",
 };
 
@@ -169,9 +169,9 @@ function MovieFormModal({ isOpen, onClose, onSubmit, initial, title }: {
               </div>
               <div>
                 <label className="block text-xs font-medium text-dark-300 mb-1.5">Category</label>
-                <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value as Movie["category"] })}
+                <select value={form.category} onChange={(e) => { const cat = e.target.value as Movie["category"]; setForm({ ...form, category: cat, provider: cat !== "drama" ? "" : form.provider }); }}
                   className="w-full bg-dark-800 border border-dark-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-accent">
-                  <option value="drama">Drama</option><option value="movie">Movie</option><option value="anime">Anime</option><option value="donghua">Donghua</option>
+                  <option value="drama">Drama</option><option value="movie">Movie</option><option value="anime">Anime</option><option value="donghua">Donghua</option><option value="tvshow">TV Show</option>
                 </select>
               </div>
               <div>
@@ -200,14 +200,16 @@ function MovieFormModal({ isOpen, onClose, onSubmit, initial, title }: {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4 mt-4">
+              {form.category === "drama" && (
               <div>
-                <label className="block text-xs font-medium text-dark-300 mb-1.5">Provider</label>
+                <label className="block text-xs font-medium text-dark-300 mb-1.5">Provider <span className="text-dark-500">(Drama only)</span></label>
                 <select value={form.provider} onChange={(e) => setForm({ ...form, provider: e.target.value })}
                   className="w-full bg-dark-800 border border-dark-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-accent">
                   <option value="">Select provider</option>
                   {storeProviders.filter((p: { isComingSoon: boolean }) => !p.isComingSoon).map((p: { id: string; name: string }) => <option key={p.id} value={p.name}>{p.name}</option>)}
                 </select>
               </div>
+              )}
               <div>
                 <label className="block text-xs font-medium text-dark-300 mb-1.5">Genre (comma sep.)</label>
                 <input type="text" value={form.genre} onChange={(e) => setForm({ ...form, genre: e.target.value })}
@@ -319,11 +321,14 @@ function EpisodeManagerModal({ movie, onClose, showToast }: {
   };
 
   const toggleVip = (idx: number) => {
-    setEpisodes((prev: Episode[]) => prev.map((ep: Episode, i: number) =>
-      i === idx ? { ...ep, isFree: !ep.isFree, isVipOnly: !ep.isVipOnly } : ep
-    ));
     const ep = episodes[idx];
-    showToast(`Episode ${ep.episodeNumber} ${ep.isVipOnly ? "unlocked (free)" : "locked for VIP"}.`);
+    const newVipState = !ep.isVipOnly;
+    const updated = episodes.map((e: Episode, i: number) =>
+      i === idx ? { ...e, isFree: !newVipState, isVipOnly: newVipState } : e
+    );
+    setEpisodes(updated);
+    saveEpisodesToStore(movie.id, updated);
+    showToast(`Episode ${ep.episodeNumber} ${newVipState ? "locked for VIP" : "unlocked (free)"}.`);
   };
 
   const lockAll = () => {
@@ -505,8 +510,8 @@ export default function AdminMoviesPage() {
       videoUrl: data.videoUrl || undefined,
       country: data.country, status: data.status,
       genre: data.genre.split(",").map((g: string) => g.trim()).filter(Boolean),
-      provider: data.provider || "CubeTV",
-      providerSlug: (data.provider || "cubetv").toLowerCase().replace(/\s+/g, ""),
+      provider: data.category === "drama" ? (data.provider || "None") : "None",
+      providerSlug: data.category === "drama" ? (data.provider || "none").toLowerCase().replace(/\s+/g, "") : "none",
       rating: data.rating, views: 0,
       totalEpisodes: data.totalEpisodes, freeEpisodes: data.freeEpisodes,
       year: data.year, isVipOnly: data.isVipOnly,
@@ -578,7 +583,7 @@ export default function AdminMoviesPage() {
             placeholder="Search movies..." className="bg-transparent text-sm text-white placeholder:text-dark-500 focus:outline-none w-full" />
         </div>
         <div className="flex gap-1 bg-dark-800 border border-dark-700 rounded-xl p-1">
-          {["all", "drama", "movie", "anime", "donghua"].map((cat) => (
+          {["all", "drama", "movie", "anime", "donghua", "tvshow"].map((cat) => (
             <button key={cat} onClick={() => setFilterCategory(cat)}
               className={cn("px-3 py-1.5 text-xs font-medium rounded-lg transition-all capitalize",
                 filterCategory === cat ? "bg-accent text-dark-950 font-bold" : "text-dark-400 hover:text-white hover:bg-dark-700")}>

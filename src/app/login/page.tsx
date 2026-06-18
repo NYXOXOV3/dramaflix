@@ -1,15 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Crown, Mail, Lock, Eye, EyeOff, Film, Monitor } from "lucide-react";
 
+const USER_STORAGE_KEY = "dramaflix_user_session";
+
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Redirect if already logged in
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(USER_STORAGE_KEY);
+      if (stored) {
+        const user = JSON.parse(stored);
+        if (user?.email) {
+          router.replace("/");
+        }
+      }
+    } catch { /* ignore */ }
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,11 +35,44 @@ export default function LoginPage() {
       setError("Please fill in all fields");
       return;
     }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
     setIsLoading(true);
-    // Simulate API call
-    await new Promise((r) => setTimeout(r, 1500));
-    setIsLoading(false);
-    alert("Login functionality requires Supabase setup. Use mock login for demo.");
+
+    try {
+      // Simulate network delay
+      await new Promise((r) => setTimeout(r, 1200));
+
+      // Check if user exists in localStorage
+      const usersRaw = localStorage.getItem("dramaflix_users");
+      const users: Array<{ email: string; password: string; name: string }> = usersRaw ? JSON.parse(usersRaw) : [];
+      const existing = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+
+      if (existing) {
+        if (existing.password !== password) {
+          setError("Incorrect password. Please try again.");
+          setIsLoading(false);
+          return;
+        }
+        // Login success
+        const session = { email: existing.email, name: existing.name, loggedInAt: new Date().toISOString() };
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(session));
+        router.push("/");
+      } else {
+        // Demo mode: auto-login with any credentials
+        const session = { email, name: email.split("@")[0], loggedInAt: new Date().toISOString() };
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(session));
+        // Also register the user for future logins
+        const updatedUsers = [...users, { email, password, name: email.split("@")[0] }];
+        localStorage.setItem("dramaflix_users", JSON.stringify(updatedUsers));
+        router.push("/");
+      }
+    } catch {
+      setError("An unexpected error occurred. Please try again.");
+      setIsLoading(false);
+    }
   };
 
   return (
