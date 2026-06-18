@@ -6,6 +6,7 @@ import { useData } from "@/lib/data-store";
 import { ArrowLeft, ChevronLeft, ChevronRight, Share2, Lock, Crown, Play } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Movie, Episode } from "@/lib/types";
+import VideoPlayer from "@/components/VideoPlayer";
 
 export default function WatchPage() {
   const params = useParams();
@@ -70,9 +71,11 @@ export default function WatchPage() {
                 </div>
               </div>
             ) : (
-              <video key={currentEp.id} src={currentEp.videoUrl || movie.videoUrl || ""} controls autoPlay className="w-full h-full" poster={currentEp.thumbnailUrl || movie.bannerImage || movie.coverImage}>
-                Your browser does not support the video tag.
-              </video>
+              <VideoPlayer
+                src={currentEp.videoUrl || movie.videoUrl || ""}
+                poster={currentEp.thumbnailUrl || movie.bannerImage || movie.coverImage}
+                className="w-full h-full"
+              />
             )}
           </div>
 

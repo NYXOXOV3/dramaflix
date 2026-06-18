@@ -6,6 +6,7 @@ import { useData } from "@/lib/data-store";
 import { ArrowLeft, Share2, Heart, Crown, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Movie } from "@/lib/types";
+import VideoPlayer from "@/components/VideoPlayer";
 
 export default function DirectPlayPage() {
   const params = useParams();
@@ -42,15 +43,11 @@ export default function DirectPlayPage() {
 
       {/* Video Player */}
       <div className="relative aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl">
-        <video
-          src={movie.videoUrl}
-          controls
-          autoPlay
-          className="w-full h-full"
+        <VideoPlayer
+          src={movie.videoUrl || ""}
           poster={movie.bannerImage || movie.coverImage}
-        >
-          Your browser does not support the video tag.
-        </video>
+          className="w-full h-full"
+        />
       </div>
 
       {/* Movie Info */}
