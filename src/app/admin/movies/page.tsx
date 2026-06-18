@@ -18,6 +18,7 @@ interface MovieFormData {
   category: "drama" | "movie" | "anime" | "donghua" | "tvshow"; isVipOnly: boolean;
   coverImage: string; bannerImage: string; videoUrl: string;
   tmdbId: string;
+  tags: string[];
 }
 
 interface EpisodeFormData {
@@ -31,6 +32,7 @@ const emptyForm: MovieFormData = {
   status: "Ongoing", genre: "", provider: "", rating: 4.0,
   totalEpisodes: 10, freeEpisodes: 3, year: 2025, category: "drama" as const, isVipOnly: false,
   coverImage: "", bannerImage: "", videoUrl: "", tmdbId: "",
+  tags: [],
 };
 
 // ============ POSTER UPLOAD HELPER ============
@@ -84,7 +86,7 @@ function MovieFormModal({ isOpen, onClose, onSubmit, initial, title }: {
   isOpen: boolean; onClose: () => void; onSubmit: (data: MovieFormData) => void;
   initial: MovieFormData; title: string;
 }) {
-  const { providers: storeProviders, countries: storeCountries } = useData();
+  const { providers: storeProviders, countries: storeCountries, tags: storeTags } = useData();
   const [form, setForm] = useState<MovieFormData>(initial);
   const [errors, setErrors] = useState<string[]>([]);
 
@@ -230,6 +232,28 @@ function MovieFormModal({ isOpen, onClose, onSubmit, initial, title }: {
                 className="w-4 h-4 rounded border-dark-600 bg-dark-800 text-accent focus:ring-accent" />
               <span className="text-sm text-dark-300">VIP Only (entire movie)</span>
             </label>
+
+            {/* Tags */}
+            <div className="mt-4 pt-4 border-t border-dark-800">
+              <label className="block text-xs font-medium text-dark-300 mb-2">Tags (appear as badges on poster)</label>
+              <div className="flex flex-wrap gap-2">
+                {(storeTags as Array<{ id: string; name: string; color: string; bgColor: string; logo?: string }>).sort((a, b) => a.name.localeCompare(b.name)).map((tag) => {
+                  const isSelected = form.tags.includes(tag.id);
+                  return (
+                    <button key={tag.id} type="button"
+                      onClick={() => setForm({ ...form, tags: isSelected ? form.tags.filter((t: string) => t !== tag.id) : [...form.tags, tag.id] })}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all border ${isSelected ? "border-white/30 ring-1 ring-white/20" : "border-dark-700 hover:border-dark-600 opacity-60 hover:opacity-100"}`}
+                      style={{ backgroundColor: isSelected ? tag.bgColor : "transparent", color: isSelected ? tag.color : tag.color }}>
+                      {tag.logo && <img src={tag.logo} alt="" className="w-3.5 h-3.5 rounded-sm object-cover" />}
+                      {tag.name}
+                    </button>
+                  );
+                })}
+              </div>
+              {form.tags.length > 0 && (
+                <p className="text-[10px] text-dark-500 mt-2">{form.tags.length} tag{form.tags.length > 1 ? "s" : ""} selected</p>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-3 pt-2">
@@ -526,6 +550,7 @@ export default function AdminMoviesPage() {
       totalEpisodes: data.totalEpisodes, freeEpisodes: data.freeEpisodes,
       year: data.year, isVipOnly: data.isVipOnly,
       isTrending: false, isNew: true, category: data.category,
+      tags: data.tags,
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
     };
     addMovie(movie);
@@ -546,6 +571,7 @@ export default function AdminMoviesPage() {
       providerSlug: (data.provider || editTarget.providerSlug).toLowerCase().replace(/\s+/g, ""),
       rating: data.rating, totalEpisodes: data.totalEpisodes, freeEpisodes: data.freeEpisodes,
       year: data.year, isVipOnly: data.isVipOnly, category: data.category,
+      tags: data.tags,
     });
     setEditTarget(null);
     showToast(`"${data.title}" updated.`);
@@ -566,6 +592,7 @@ export default function AdminMoviesPage() {
     year: m.year, category: m.category, isVipOnly: m.isVipOnly,
     coverImage: m.coverImage, bannerImage: m.bannerImage || "", videoUrl: m.videoUrl || "",
     tmdbId: m.tmdbId ? String(m.tmdbId) : "",
+    tags: m.tags || [],
   });
 
   return (

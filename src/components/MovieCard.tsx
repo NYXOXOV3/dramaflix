@@ -1,7 +1,8 @@
 import Link from "next/link";
-import type { Movie } from "@/lib/types";
+import type { Movie, Tag } from "@/lib/types";
 import { cn, formatNumber } from "@/lib/utils";
 import { Play, Star, Eye, Crown, Sparkles } from "lucide-react";
+import { useData } from "@/lib/data-store";
 
 interface MovieCardProps {
   movie: Movie;
@@ -10,6 +11,8 @@ interface MovieCardProps {
 }
 
 export default function MovieCard({ movie, variant = "default", rank }: MovieCardProps) {
+  const { tags } = useData();
+  const movieTags = (movie.tags || []).map((tagId: string) => (tags as Tag[]).find((t: Tag) => t.id === tagId)).filter(Boolean) as Tag[];
   if (variant === "ranking") {
     return (
       <Link href={`/movie/${movie.slug}`} className="group flex items-center gap-4 p-3 hover:bg-dark-800/50 rounded-xl transition-all">
@@ -52,7 +55,14 @@ export default function MovieCard({ movie, variant = "default", rank }: MovieCar
         </div>
         {/* Badges */}
         <div className="absolute top-2 left-2 flex flex-col gap-1">
-          {movie.isNew && (
+          {movieTags.map((tag) => (
+            <span key={tag.id} className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md"
+              style={{ backgroundColor: tag.bgColor, color: tag.color }}>
+              {tag.logo && <img src={tag.logo} alt="" className="w-3 h-3 rounded-sm object-cover" />}
+              {tag.name}
+            </span>
+          ))}
+          {movie.isNew && movieTags.length === 0 && (
             <span className="flex items-center gap-1 bg-success/90 text-dark-950 text-[10px] font-bold px-2 py-0.5 rounded-md">
               <Sparkles size={10} /> NEW
             </span>

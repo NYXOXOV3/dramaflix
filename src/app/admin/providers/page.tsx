@@ -12,7 +12,7 @@ export default function AdminProvidersPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editTarget, setEditTarget] = useState<Provider | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", slug: "", isVipOnly: false, isComingSoon: false });
+  const [form, setForm] = useState({ name: "", slug: "", isVipOnly: false, isComingSoon: false, logo: "" });
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
@@ -27,11 +27,12 @@ export default function AdminProvidersPage() {
     const provider: Provider = {
       id: `p${Date.now()}`, name: form.name.trim(),
       slug: form.slug.trim() || form.name.toLowerCase().replace(/\s+/g, "-"),
-      logo: "", totalMovies: 0, isVipOnly: form.isVipOnly, isComingSoon: form.isComingSoon,
+      logo: form.logo.trim(),
+      totalMovies: 0, isVipOnly: form.isVipOnly, isComingSoon: form.isComingSoon,
     };
     addProvider(provider);
     setShowAddModal(false);
-    setForm({ name: "", slug: "", isVipOnly: false, isComingSoon: false });
+    setForm({ name: "", slug: "", isVipOnly: false, isComingSoon: false, logo: "" });
     showToast(`"${provider.name}" has been added.`);
   };
 
@@ -42,6 +43,7 @@ export default function AdminProvidersPage() {
       slug: form.slug.trim() || editTarget.slug,
       isVipOnly: form.isVipOnly,
       isComingSoon: form.isComingSoon,
+      logo: form.logo.trim() || editTarget.logo,
     });
     showToast(`"${form.name}" has been updated.`);
     setEditTarget(null);
@@ -57,7 +59,7 @@ export default function AdminProvidersPage() {
 
   const openEdit = (provider: Provider) => {
     setEditTarget(provider);
-    setForm({ name: provider.name, slug: provider.slug, isVipOnly: provider.isVipOnly, isComingSoon: provider.isComingSoon });
+    setForm({ name: provider.name, slug: provider.slug, isVipOnly: provider.isVipOnly, isComingSoon: provider.isComingSoon, logo: provider.logo || "" });
   };
 
   const renderFormModal = (onSubmit: () => void, title: string, onClose: () => void) => (
@@ -91,6 +93,36 @@ export default function AdminProvidersPage() {
               <span className="text-sm text-dark-300">Coming Soon</span>
             </label>
           </div>
+          {/* Logo Upload */}
+          <div>
+            <label className="block text-xs font-medium text-dark-300 mb-1.5">Provider Logo</label>
+            <div className="flex items-center gap-3">
+              {form.logo ? (
+                <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-dark-800 border border-dark-700">
+                  <img src={form.logo} alt="Logo" className="w-full h-full object-cover" />
+                  <button onClick={() => setForm({ ...form, logo: "" })} className="absolute -top-1 -right-1 w-4 h-4 bg-danger rounded-full flex items-center justify-center">
+                    <X size={10} className="text-white" />
+                  </button>
+                </div>
+              ) : (
+                <div className="w-12 h-12 rounded-lg bg-dark-800 border border-dark-700 flex items-center justify-center text-dark-600">
+                  {form.name ? form.name.charAt(0).toUpperCase() : "?"}
+                </div>
+              )}
+              <label className="flex items-center gap-1.5 px-3 py-2 bg-dark-800 hover:bg-dark-700 border border-dark-700 rounded-lg text-xs text-dark-300 hover:text-white transition-all cursor-pointer">
+                {form.logo ? "Change" : "Upload"} Logo
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 512 * 1024) { showToast("Max 512KB", "error"); return; }
+                  const reader = new FileReader();
+                  reader.onload = () => setForm({ ...form, logo: reader.result as string });
+                  reader.readAsDataURL(file);
+                  e.target.value = "";
+                }} />
+              </label>
+            </div>
+          </div>
           <div className="flex gap-3 pt-2">
             <button onClick={onClose} className="flex-1 py-2.5 bg-dark-800 hover:bg-dark-700 text-white text-sm rounded-xl transition-all">Cancel</button>
             <button onClick={onSubmit} disabled={!form.name.trim()}
@@ -117,7 +149,7 @@ export default function AdminProvidersPage() {
           <h1 className="text-2xl font-extrabold text-white">Providers</h1>
           <p className="text-sm text-dark-400">{providerList.length} content providers</p>
         </div>
-        <button onClick={() => { setShowAddModal(true); setForm({ name: "", slug: "", isVipOnly: false, isComingSoon: false }); }}
+        <button onClick={() => { setShowAddModal(true); setForm({ name: "", slug: "", isVipOnly: false, isComingSoon: false, logo: "" }); }}
           className="inline-flex items-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-dark text-dark-950 font-bold text-sm rounded-xl transition-all">
           <Plus size={16} /> Add Provider
         </button>
@@ -134,9 +166,13 @@ export default function AdminProvidersPage() {
           <div key={provider.id} className="p-4 bg-dark-900 border border-dark-800 rounded-2xl hover:border-dark-700 transition-all">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-dark-800 rounded-xl flex items-center justify-center">
-                  <span className="text-sm font-bold text-accent">{provider.name.charAt(0)}</span>
-                </div>
+                {provider.logo ? (
+                  <img src={provider.logo} alt={provider.name} className="w-10 h-10 rounded-xl object-cover" />
+                ) : (
+                  <div className="w-10 h-10 bg-dark-800 rounded-xl flex items-center justify-center">
+                    <span className="text-sm font-bold text-accent">{provider.name.charAt(0)}</span>
+                  </div>
+                )}
                 <div>
                   <h3 className="text-sm font-bold text-white">{provider.name}</h3>
                   <p className="text-[11px] text-dark-500">{provider.slug}</p>

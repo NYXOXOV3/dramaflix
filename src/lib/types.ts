@@ -22,6 +22,7 @@ export interface Movie {
   isTrending: boolean;
   isNew: boolean;
   category: "drama" | "movie" | "anime" | "donghua" | "tvshow";
+  tags: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -97,4 +98,15 @@ export interface Country {
   name: string;
   code: string;
   flag?: string;
+}
+
+export interface Tag {
+  id: string;
+  name: string;
+  slug: string;
+  color: string;
+  bgColor: string;
+  logo?: string;
+  isAuto?: boolean;
+  priority: number;
 }

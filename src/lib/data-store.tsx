@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useSyncExternalStore } from "react";
-import type { Movie, Episode, Provider, Country } from "@/lib/types";
+import type { Movie, Episode, Provider, Country, Tag } from "@/lib/types";
 import {
   movies as seedMovies,
   providers as seedProviders,
@@ -16,6 +16,7 @@ const MOVIES_KEY = "dramaflix_movies";
 const PROVIDERS_KEY = "dramaflix_providers";
 const EPISODES_KEY = "dramaflix_episodes";
 const COUNTRIES_KEY = "dramaflix_countries";
+const TAGS_KEY = "dramaflix_tags";
 const INIT_FLAG_KEY = "dramaflix_store_init";
 const CHANGE_EVENT = "dramaflix:data-changed";
 
@@ -30,9 +31,23 @@ const seedCountries: Country[] = [
   { id: "c7", name: "Indonesia", code: "ID", flag: "🇮🇩" },
 ];
 
+// Default seed tags
+const seedTags: Tag[] = [
+  { id: "tag-new", name: "NEW", slug: "new", color: "#ffffff", bgColor: "#00e676", priority: 1 },
+  { id: "tag-hot", name: "HOT", slug: "hot", color: "#ffffff", bgColor: "#ef4444", priority: 2 },
+  { id: "tag-trending", name: "Trending", slug: "trending", color: "#ffffff", bgColor: "#f59e0b", priority: 3 },
+  { id: "tag-top", name: "Top Rated", slug: "top-rated", color: "#ffffff", bgColor: "#a855f7", priority: 4 },
+  { id: "tag-vip", name: "VIP", slug: "vip", color: "#1a1a1a", bgColor: "#fbbf24", priority: 5 },
+  { id: "tag-movie", name: "Movie", slug: "movie", color: "#ffffff", bgColor: "#3b82f6", priority: 6 },
+  { id: "tag-tvshow", name: "TV Show", slug: "tv-show", color: "#ffffff", bgColor: "#06b6d4", priority: 7 },
+  { id: "tag-anime", name: "Anime", slug: "anime", color: "#ffffff", bgColor: "#ec4899", priority: 8 },
+  { id: "tag-donghua", name: "Donghua", slug: "donghua", color: "#ffffff", bgColor: "#14b8a6", priority: 9 },
+];
+
 let _movies: Movie[] = [];
 let _providers: Provider[] = [];
 let _countries: Country[] = [];
+let _tags: Tag[] = [];
 let _episodesMap: Record<string, Episode[]> = {};
 let _initialized = false;
 let _version = 0;
@@ -66,12 +81,14 @@ function initStore() {
     _movies = loadLS<Movie[]>(MOVIES_KEY) ?? [];
     _providers = loadLS<Provider[]>(PROVIDERS_KEY) ?? [];
     _countries = loadLS<Country[]>(COUNTRIES_KEY) ?? [];
+    _tags = loadLS<Tag[]>(TAGS_KEY) ?? [];
     _episodesMap = loadLS<Record<string, Episode[]>>(EPISODES_KEY) ?? {};
   } else {
     // First-ever visit - seed with defaults
     _movies = [...seedMovies];
     _providers = [...seedProviders];
     _countries = [...seedCountries];
+    _tags = [...seedTags];
     _episodesMap = {};
     saveLS(INIT_FLAG_KEY, true);
   }
@@ -80,6 +97,7 @@ function initStore() {
   saveLS(MOVIES_KEY, _movies);
   saveLS(PROVIDERS_KEY, _providers);
   saveLS(COUNTRIES_KEY, _countries);
+  saveLS(TAGS_KEY, _tags);
   saveLS(EPISODES_KEY, _episodesMap);
 }
 
@@ -143,6 +161,27 @@ function deleteCountry(id: string) {
   saveLS(COUNTRIES_KEY, _countries);
   notify();
 }
+
+// ---- Tag CRUD ----
+function addTag(tag: Tag) {
+  _tags = [..._tags, tag];
+  saveLS(TAGS_KEY, _tags);
+  notify();
+}
+
+function updateTag(id: string, data: Partial<Tag>) {
+  _tags = _tags.map((t) => t.id === id ? { ...t, ...data } : t);
+  saveLS(TAGS_KEY, _tags);
+  notify();
+}
+
+function deleteTag(id: string) {
+  _tags = _tags.filter((t) => t.id !== id);
+  saveLS(TAGS_KEY, _tags);
+  notify();
+}
+
+function getTags() { return [..._tags].sort((a, b) => a.priority - b.priority); }
 
 // ---- Episode management ----
 function setEpisodes(movieId: string, episodes: Episode[]) {
@@ -281,6 +320,7 @@ export function useData() {
     get movies() { return _movies; },
     get providers() { return _providers; },
     get countries() { return _countries; },
+    get tags() { return _tags; },
 
     addMovie,
     updateMovie,
@@ -293,6 +333,11 @@ export function useData() {
     addCountry,
     updateCountry,
     deleteCountry,
+
+    addTag,
+    updateTag,
+    deleteTag,
+    getTags,
 
     getEpisodes,
     setEpisodes,
