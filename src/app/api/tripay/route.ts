@@ -90,17 +90,17 @@ async function handleCreate(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Read credentials from body first (sent by VIP page), then fall back to env vars
-    const apiKey = body.apiKey || process.env.TRIPAY_API_KEY || "";
-    const privateKey = body.privateKey || process.env.TRIPAY_PRIVATE_KEY || "";
-    const merchantCode = body.merchantCode || process.env.TRIPAY_MERCHANT_CODE || "";
+    // Read credentials from body first, then env vars. TRIM all to remove whitespace.
+    const apiKey = (body.apiKey || process.env.TRIPAY_API_KEY || "").trim();
+    const privateKey = (body.privateKey || process.env.TRIPAY_PRIVATE_KEY || "").trim();
+    const merchantCode = (body.merchantCode || process.env.TRIPAY_MERCHANT_CODE || "").trim();
     const mode = (body.mode || process.env.TRIPAY_MODE || "sandbox") as "sandbox" | "production";
     const baseUrl = TRIPAY_BASE[mode] || TRIPAY_BASE.sandbox;
 
     if (!apiKey || !privateKey || !merchantCode) {
       return NextResponse.json({
         success: false,
-        error: `TriPay credentials not fully configured. Missing: ${!apiKey ? "API Key " : ""}${!privateKey ? "Private Key " : ""}${!merchantCode ? "Merchant Code" : ""}`.trim()
+        error: `TriPay credentials not fully configured. Missing: ${!apiKey ? "[API Key] " : ""}${!privateKey ? "[Private Key] " : ""}${!merchantCode ? "[Merchant Code]" : ""}`.trim()
       });
     }
 
@@ -110,48 +110,46 @@ async function handleCreate(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Missing required fields: method, amount, customerName, customerEmail, customerPhone" });
     }
 
-    const merchantRef = `VIP-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    const merchantRef = `INV${Date.now()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
     const expiry = Math.floor(Date.now() / 1000) + 24 * 60 * 60; // 24 hours
-    const amountInt = Math.round(Number(amount)); // Ensure integer for signature
+    const amountInt = Math.round(Number(amount));
 
     if (isNaN(amountInt) || amountInt < 1000) {
       return NextResponse.json({ success: false, error: `Invalid amount: ${amount}. Must be at least 1000.` });
     }
 
-    // Create signature: HMAC-SHA256(merchantCode + merchantRef + amount, privateKey)
+    // Signature: HMAC-SHA256(merchantCode + merchantRef + amount, privateKey)
+    const signatureString = merchantCode + merchantRef + amountInt;
     const signature = crypto
       .createHmac("sha256", privateKey)
-      .update(merchantCode + merchantRef + amountInt)
+      .update(signatureString)
       .digest("hex");
 
-    const payload = {
-      method,
-      merchant_ref: merchantRef,
-      amount: amountInt,
-      customer_name: customerName,
-      customer_email: customerEmail,
-      customer_phone: customerPhone,
-      order_items: [
-        {
-          sku: planName?.replace(/\s+/g, "-").toUpperCase() || "VIP",
-          name: planName || "VIP Subscription",
-          price: amountInt,
-          quantity: 1,
-        },
-      ],
-      callback_url: callbackUrl || "",
-      return_url: returnUrl || "",
-      expired_time: expiry,
-      signature,
-    };
+    // Build payload as form-encoded (TriPay examples use form data)
+    const formData = new URLSearchParams();
+    formData.append("method", method);
+    formData.append("merchant_ref", merchantRef);
+    formData.append("amount", String(amountInt));
+    formData.append("customer_name", customerName);
+    formData.append("customer_email", customerEmail);
+    formData.append("customer_phone", customerPhone);
+    formData.append("order_items[0][sku]", planName?.replace(/\s+/g, "-").toUpperCase() || "VIP");
+    formData.append("order_items[0][name]", planName || "VIP Subscription");
+    formData.append("order_items[0][price]", String(amountInt));
+    formData.append("order_items[0][quantity]", "1");
+    formData.append("expired_time", String(expiry));
+    formData.append("signature", signature);
+
+    // Only add optional fields if they have values
+    if (callbackUrl) formData.append("callback_url", callbackUrl);
+    if (returnUrl) formData.append("return_url", returnUrl);
 
     const res = await fetch(`${baseUrl}/transaction/create`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
       },
-      body: JSON.stringify(payload),
+      body: formData.toString(),
     });
 
     const data = await res.json();
