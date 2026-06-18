@@ -125,7 +125,7 @@ async function handleCreate(request: NextRequest) {
       .update(signatureString)
       .digest("hex");
 
-    // Build JSON payload
+    // Build JSON payload (matches TriPay response format exactly)
     const payload: Record<string, unknown> = {
       method,
       merchant_ref: merchantRef,
@@ -139,6 +139,7 @@ async function handleCreate(request: NextRequest) {
           name: planName || "VIP Subscription",
           price: amountInt,
           quantity: 1,
+          subtotal: amountInt,
         },
       ],
       expired_time: expiry,
@@ -176,7 +177,21 @@ async function handleCreate(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ success: false, error: data.message || "Transaction creation failed" });
+    // Return detailed debug info on failure
+    return NextResponse.json({
+      success: false,
+      error: data.message || "Transaction creation failed",
+      debug: {
+        signatureString: merchantCode + merchantRef + amountInt,
+        signature,
+        merchantCode,
+        merchantRef,
+        amount: amountInt,
+        method,
+        baseUrl,
+        tripayResponse: data,
+      },
+    });
   } catch (error) {
     return NextResponse.json({ success: false, error: "Server error creating transaction" });
   }
