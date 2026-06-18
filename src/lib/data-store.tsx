@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import type { Movie, Episode, Provider } from "@/lib/types";
 import {
   movies as seedMovies,
@@ -10,23 +10,21 @@ import {
 
 // ============================================================
 // MODULE-LEVEL SINGLETON STORE
-// This guarantees ALL components share the same data regardless
-// of React Context tree structure or layout boundaries.
 // ============================================================
 
 const MOVIES_KEY = "dramaflix_movies";
 const PROVIDERS_KEY = "dramaflix_providers";
 const EPISODES_KEY = "dramaflix_episodes";
+const INIT_FLAG_KEY = "dramaflix_store_init";
 const CHANGE_EVENT = "dramaflix:data-changed";
 
-// The single source of truth - module-level variables
 let _movies: Movie[] = [];
 let _providers: Provider[] = [];
 let _episodesMap: Record<string, Episode[]> = {};
 let _initialized = false;
-let _mutationCounter = 0; // Incremented on every mutation for reliable snapshots
+let _version = 0;
 
-// ---- LocalStorage helpers ----
+// ---- LocalStorage ----
 function loadLS<T>(key: string): T | null {
   try {
     const raw = localStorage.getItem(key);
@@ -38,26 +36,32 @@ function saveLS(key: string, data: unknown) {
   try { localStorage.setItem(key, JSON.stringify(data)); } catch { /* quota */ }
 }
 
-// ---- Notify all subscribers ----
 function notify() {
-  _mutationCounter++;
-  window.dispatchEvent(new CustomEvent(CHANGE_EVENT));
+  _version++;
+  window.dispatchEvent(new CustomEvent(CHANGE_EVENT, { detail: _version }));
 }
 
-// ---- Initialize once ----
+// ---- Init (FIXED: uses flag to distinguish first-visit vs empty-data) ----
 function initStore() {
   if (_initialized) return;
   _initialized = true;
 
-  const storedMovies = loadLS<Movie[]>(MOVIES_KEY);
-  const storedProviders = loadLS<Provider[]>(PROVIDERS_KEY);
-  const storedEpisodes = loadLS<Record<string, Episode[]>>(EPISODES_KEY);
+  const wasInitializedBefore = loadLS<boolean>(INIT_FLAG_KEY) === true;
 
-  _movies = (storedMovies && storedMovies.length > 0) ? storedMovies : [...seedMovies];
-  _providers = (storedProviders && storedProviders.length > 0) ? storedProviders : [...seedProviders];
-  _episodesMap = storedEpisodes || {};
+  if (wasInitializedBefore) {
+    // Returning user - trust localStorage EXACTLY as-is (even if empty)
+    _movies = loadLS<Movie[]>(MOVIES_KEY) ?? [];
+    _providers = loadLS<Provider[]>(PROVIDERS_KEY) ?? [];
+    _episodesMap = loadLS<Record<string, Episode[]>>(EPISODES_KEY) ?? {};
+  } else {
+    // First-ever visit - seed with defaults
+    _movies = [...seedMovies];
+    _providers = [...seedProviders];
+    _episodesMap = {};
+    saveLS(INIT_FLAG_KEY, true);
+  }
 
-  // Persist initial state
+  // Persist current state
   saveLS(MOVIES_KEY, _movies);
   saveLS(PROVIDERS_KEY, _providers);
   saveLS(EPISODES_KEY, _episodesMap);
@@ -139,57 +143,57 @@ function getRankings(period: "daily" | "weekly" | "monthly" | "yearly") {
 }
 
 // ============================================================
-// useSyncExternalStore for guaranteed cross-component sync
+// useSyncExternalStore - reliable cross-component sync
 // ============================================================
 
 function subscribe(callback: () => void) {
-  const handler = () => callback();
-  window.addEventListener(CHANGE_EVENT, handler);
-  return () => window.removeEventListener(CHANGE_EVENT, handler);
+  window.addEventListener(CHANGE_EVENT, callback);
+  // Also listen for storage events from other tabs
+  window.addEventListener("storage", callback);
+  return () => {
+    window.removeEventListener(CHANGE_EVENT, callback);
+    window.removeEventListener("storage", callback);
+  };
 }
 
 function getSnapshot() {
-  // Return a monotonically increasing counter that changes on every mutation
-  return _mutationCounter;
+  return _version;
 }
 
 function getServerSnapshot() {
-  return seedMovies.length + seedProviders.length;
+  return -1;
 }
 
 // ============================================================
-// THE HOOK - Every component that calls this will auto-update
-// when ANY data changes anywhere in the app
+// THE HOOK
 // ============================================================
 
 export function useData() {
-  // Force re-render when data changes
   useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
-  // Initialize on first client render
-  useEffect(() => { initStore(); notify(); }, []);
+  // Initialize store on first client render
+  useEffect(() => {
+    initStore();
+    // Bump version so components that rendered before init get fresh data
+    _version++;
+    window.dispatchEvent(new CustomEvent(CHANGE_EVENT, { detail: _version }));
+  }, []);
 
-  // Return stable references to all data + CRUD operations
   return {
-    // Data (always reads from module-level singleton)
     get movies() { return _movies; },
     get providers() { return _providers; },
 
-    // Movie CRUD
     addMovie,
     updateMovie,
     deleteMovie,
 
-    // Provider CRUD
     addProvider,
     updateProvider,
     deleteProvider,
 
-    // Episodes
     getEpisodes,
     setEpisodes,
 
-    // Queries
     getMovieBySlug,
     getProviderBySlug,
     searchMovies,
