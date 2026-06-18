@@ -70,7 +70,7 @@ export default function WatchPage() {
                 </div>
               </div>
             ) : (
-              <video key={currentEp.id} src={currentEp.videoUrl} controls autoPlay className="w-full h-full" poster={currentEp.thumbnailUrl}>
+              <video key={currentEp.id} src={currentEp.videoUrl || movie.videoUrl || ""} controls autoPlay className="w-full h-full" poster={currentEp.thumbnailUrl || movie.bannerImage || movie.coverImage}>
                 Your browser does not support the video tag.
               </video>
             )}
